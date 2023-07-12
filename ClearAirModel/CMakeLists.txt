@@ -7,4 +7,4 @@ target_include_directories(ClearAirModel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/incl
 
 target_link_libraries(ClearAirModel LINK_PUBLIC CommonLibrary)
 
-#add_subdirectory(tests)
+add_subdirectory(tests)

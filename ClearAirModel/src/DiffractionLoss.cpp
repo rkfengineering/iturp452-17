@@ -1,4 +1,5 @@
 #include "DiffractionLoss.h"
+#include "InvCumNorm.h"
 #include "MathHelpers.h"
 #include <algorithm>
 #include <cmath>
@@ -8,7 +9,7 @@ double constexpr SPEED_OF_LIGHT = 0.2998; //m*GHz
 double DiffractionLoss::bullLoss(const std::vector<double> d, const std::vector<double> h, const double hts,
         const double hrs, const double ap, const double freqGHz){
     
-    const double Ce = 1/ap; //effective Earth Curvature
+    const double Ce = 1.0/ap; //effective Earth Curvature
     const double lam = SPEED_OF_LIGHT/freqGHz; //wavelength in m
 
     double dtot = d.back()-d.front();//total path length
@@ -21,7 +22,6 @@ double DiffractionLoss::bullLoss(const std::vector<double> d, const std::vector<
         slopes[i-1] = (h[i]+500*Ce*d[i]*(dtot-d[i])-hts)/d[i]; //Eq 14
     }
     double Stim = *std::max_element(slopes.begin(),slopes.end());
-
     //Slope of line from Tx to Rx assuming LOS
     double Str = (hrs-hts)/dtot; //Eq 15
 
@@ -34,7 +34,7 @@ double DiffractionLoss::bullLoss(const std::vector<double> d, const std::vector<
                 std::sqrt(0.002*dtot/(lam*d[i]*(dtot-d[i])))); //Eq 16
         }
         double numax = *std::max_element(nus.begin(),nus.end());
-
+  
         if (numax > -0.78){
             //Eq 13, 17 Knife Edge Loss Approximation
             Luc = 6.9 + 20*std::log10(std::sqrt(MathHelpers::simpleSquare(numax-0.1)+1)+numax-0.1);
@@ -49,7 +49,7 @@ double DiffractionLoss::bullLoss(const std::vector<double> d, const std::vector<
         }
         double Srim = *std::max_element(slopes.begin(),slopes.end());
 
-        double dbp = (hrs-hts+Stim*dtot)/(Stim+Srim); //Eq 19
+        double dbp = (hrs-hts+Srim*dtot)/(Stim+Srim); //Eq 19
         double nub = (hts+Stim*dbp-(hts*(dtot-dbp)+hrs*dbp)/dtot) *
             std::sqrt(0.002*dtot/(lam*dbp*(dtot-dbp))); //Eq 20
         
@@ -57,25 +57,70 @@ double DiffractionLoss::bullLoss(const std::vector<double> d, const std::vector<
             //Eq 13, 21 Knife Edge Loss Approximation
             Luc = 6.9 + 20*std::log10(std::sqrt(MathHelpers::simpleSquare(nub-0.1)+1)+nub-0.1);
         }
+
     }
 
     //Eq 22 Bullington Loss 
-    return Luc + (1-std::exp(-Luc/6.0))*(10+0.01*dtot); 
+    return Luc + (1-std::exp(-Luc/6.0))*(10+0.02*dtot); 
 }
 
 double DiffractionLoss::delta_bullington(const ProfilePath& path, const double hts, const double hrs, const double hstd, 
-        const double hsrd, const double ae, const double freqGHz,
+        const double hsrd, const double ap, const double freqGHz,
         const double omega, const Enumerations::PolarizationType pol){
 
-    return 0;
+    //TODO figure out if its worth using ProfilePath or just pass two vectors around
+
+    //Actual heights and profile
+    double Lbulla = DiffractionLoss::bullLoss(path.d, path.h, hts, hrs, ap, freqGHz);
+    
+    //modified heights and zero profile
+    double hts1 = hts - hstd;
+    double hrs1 = hrs - hsrd;
+    std::vector<double> h1(path.length,0.0);
+    double Lbulls = DiffractionLoss::bullLoss(path.d, h1, hts1, hrs1, ap, freqGHz);
+
+    //Spherical Earth Diffraction Loss
+    double dtot = path.d.back() - path.d.front();
+    double Ldsph = DiffractionLoss::se_diffLoss(dtot, hts1, hrs1, ap, freqGHz,omega,pol);
+
+    //Eq 40
+    return Lbulla + std::max(Ldsph - Lbulls, 0.0);
 }
 
-        
 DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const ProfilePath& path, const double hts, const double hrs, const double hstd, 
-        const double hsrd, double freqGHz, const double omega, const double p, const double ae, 
-        const double ab, const Enumerations::PolarizationType pol){
+        const double hsrd, double freqGHz, const double omega, const double p, const double b0, 
+        const double DN, const Enumerations::PolarizationType pol){
 
-    return DiffractionLoss::DiffResults();
+    //Median value of effective earth radius
+    double k50 = 157.0/(157-DN); //Eq 5
+    double ae = 6371 * k50; //Eq 6a
+    //kb = 3 at Point Incidence of anomalous propagation b0
+    double ab = 6371 * 3; //Eq 6b
+    
+    //Delta Bullington Loss
+    double Ld50 = DiffractionLoss::delta_bullington(path,hts,hrs,hstd,hsrd,ae,freqGHz,omega,pol);
+
+    DiffractionLoss::DiffResults results = DiffractionLoss::DiffResults();
+    results.Ld50 = Ld50;
+    if(p==50){
+        results.Ldp = Ld50;
+    }
+    else if(p<50){
+        //Delta Bullington Loss not exceeded for b0% time
+        double Ldb = DiffractionLoss::delta_bullington(path,hts,hrs,hstd,hsrd,ab,freqGHz,omega,pol);
+
+        //interpolation factor 
+        double Fi;
+        if(p>b0){
+            Fi = inv_cum_norm(p/100)/inv_cum_norm(b0/100); //Eq 41a
+        }
+        else{
+            Fi = 1;
+        }
+        results.Ldp = Ld50 + Fi*(Ldb-Ld50);
+    }
+    //WARNING p>50 is not defined or checked for
+    return results;
 }
 
 double DiffractionLoss::se_diffLoss(const double d_gc, const double hte, const double hre, const double ap,
@@ -120,19 +165,33 @@ double DiffractionLoss::se_diffLoss(const double d_gc, const double hte, const d
 
 double DiffractionLoss::se_first_term_inner(const double epsr, const double sigma, const double d_gc, const double hte, 
         const double hre, const double adft, const double freqGHz, const Enumerations::PolarizationType pol){
-
+    
     //Normalized factor for surface admittance for Horizontal Polarization
     double K = 0.036*std::pow((adft*freqGHz),-1.0/3)*std::pow((MathHelpers::simpleSquare(epsr-1)+
         MathHelpers::simpleSquare(18*sigma/freqGHz)),-1.0/4); //Eq 30a
 
     //Normalized factor for surface admittance for Vertical Polarization
-    if(pol==Enumerations::PolarizationType::VerticalPolarized){
-        K = K*std::sqrt(MathHelpers::simpleSquare(epsr)+MathHelpers::simpleSquare(18*sigma/freqGHz)); //Eq 30b
-    }//WARNING no check for circular polarization. assume only horizontal or vertical 
+    if(pol!=Enumerations::PolarizationType::HorizontalPolarized){
+        double K_ver = K*std::sqrt(MathHelpers::simpleSquare(epsr)+MathHelpers::simpleSquare(18*sigma/freqGHz)); //Eq 30b
+        if(pol == Enumerations::PolarizationType::VerticalPolarized){
+            K = K_ver;
+        }
+        else{
+            //Circular Polarization
+            //decompose into components and combine results by vector sum of field amplitude
+            //not tested, edge case unlikely to be used
+            K = std::sqrt(K*K+K_ver*K_ver);
+        }
+    } 
 
-    double K2 = K*K;
-    double K4 = K2*K2;
-    double beta_dft = (1+1.6*K2 + 0.67*K4)/(1+4.5*K2 + 1.53*K4); //Eq 31
+    //We can use beta_dft=1 for frequencies above 300 MHz
+    double beta_dft=1;
+
+    if (freqGHz<0.3){
+        double K2 = K*K;
+        double K4 = K2*K2;
+        beta_dft = (1+1.6*K2 + 0.67*K4)/(1+4.5*K2 + 1.53*K4); //Eq 31
+    }
 
     //Normalized Distance
     double X = 21.88 * beta_dft * std::pow((freqGHz/(adft*adft)),1.0/3) * d_gc; //Eq 32
@@ -168,8 +227,9 @@ double DiffractionLoss::se_first_term_inner(const double epsr, const double sigm
     } 
 
     //enforce minimum values
-    GYt = std::max(GYt, 2+20*std::log10(K));
-    GYr = std::max(GYr, 2+20*std::log10(K));
+    double min_GY = 2+20*std::log10(K);
+    GYt = std::max(GYt, min_GY);
+    GYr = std::max(GYr, min_GY);
 
     return -Fx-GYt-GYr; //Eq 37
 }         
