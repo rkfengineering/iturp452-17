@@ -6,34 +6,47 @@
 
 double constexpr SPEED_OF_LIGHT = 0.2998; //m*GHz
 
-double DiffractionLoss::bullLoss(const std::vector<double> d, const std::vector<double> h, const double hts,
+double DiffractionLoss::bullLoss(const PathProfile::Path& path, const double hts,
         const double hrs, const double ap, const double freqGHz){
     
     const double Ce = 1.0/ap; //effective Earth Curvature
     const double lam = SPEED_OF_LIGHT/freqGHz; //wavelength in m
 
-    double dtot = d.back()-d.front();//total path length
+    double dtot = path.back().d_km-path.front().d_km;//total path length
     double Luc = 0;//knife edge loss
 
     //Find intermediate profile point with highest slope from Tx
-    int points = d.size();//assume arrays have intermediate points
-    std::vector<double> slopes(points-2);
-    for(int i=1; i<points-1; i++){ //TODO optimize later
-        slopes[i-1] = (h[i]+500*Ce*d[i]*(dtot-d[i])-hts)/d[i]; //Eq 14
+
+    //int points = d.size();//assume arrays have intermediate points
+    //std::vector<double> slopes(points-2);
+    
+    //need to exclude first and last point
+    const PathProfile::ProfilePoint secondPoint = *(path.begin()+1);
+    double max_slope_tx = (secondPoint.h_masl+500*Ce*secondPoint.d_km*(dtot-secondPoint.d_km)-hts)/secondPoint.d_km;
+    for(auto it = path.begin()+2; it<path.end()-1;it++){
+        const PathProfile::ProfilePoint point = *it;
+        max_slope_tx = std::max(max_slope_tx,(point.h_masl+500*Ce*point.d_km*(dtot-point.d_km)-hts)/point.d_km); //Eq 14
     }
-    double Stim = *std::max_element(slopes.begin(),slopes.end());
+
+    double Stim = max_slope_tx;//*std::max_element(slopes.begin(),slopes.end());
     //Slope of line from Tx to Rx assuming LOS
     double Str = (hrs-hts)/dtot; //Eq 15
 
     //Case 1 LOS path
     if(Stim<Str){
         //calculate diffraction parameter at every profile point
-        std::vector<double> nus(points-2);
-        for(int i=1; i<points-1; i++){ //TODO optimize later
-            nus[i-1] = ((h[i]+500*Ce*d[i]*(dtot-d[i])-(hts*(dtot-d[i])+hrs*d[i])/dtot) *
-                std::sqrt(0.002*dtot/(lam*d[i]*(dtot-d[i])))); //Eq 16
+
+        double numax = ((secondPoint.h_masl+500*Ce*secondPoint.d_km*(dtot-secondPoint.d_km)
+                -(hts*(dtot-secondPoint.d_km)+hrs*secondPoint.d_km)/dtot) *
+                std::sqrt(0.002*dtot/(lam*secondPoint.d_km*(dtot-secondPoint.d_km)))); 
+        for(auto it = path.begin()+2; it<path.end()-1;it++){
+            const PathProfile::ProfilePoint point = *it;
+            const double nu = ((point.h_masl+500*Ce*point.d_km*(dtot-point.d_km)
+                    -(hts*(dtot-point.d_km)+hrs*point.d_km)/dtot) *
+                    std::sqrt(0.002*dtot/(lam*point.d_km*(dtot-point.d_km))));//Eq 14
+            numax = std::max(numax,nu); 
         }
-        double numax = *std::max_element(nus.begin(),nus.end());
+
   
         if (numax > -0.78){
             //Eq 13, 17 Knife Edge Loss Approximation
@@ -43,11 +56,14 @@ double DiffractionLoss::bullLoss(const std::vector<double> d, const std::vector<
     //Case 2 Transhorizon path
     else{
         //Find intermediate profile point with highest slope from Rx
-        std::vector<double> slopes(points-2);
-        for(int i=1; i<points-1; i++){ //TODO optimize later
-            slopes[i-1] = (h[i]+500*Ce*d[i]*(dtot-d[i])-hrs)/(dtot-d[i]); //Eq 18
+
+        double max_slope_rx = (secondPoint.h_masl+500*Ce*secondPoint.d_km*(dtot-secondPoint.d_km)-hrs)/(dtot-secondPoint.d_km);
+        for(auto it = path.begin()+2; it<path.end()-1;it++){
+            const PathProfile::ProfilePoint point = *it;
+            max_slope_rx = std::max(max_slope_rx,(point.h_masl+500*Ce*point.d_km*(dtot-point.d_km)-hrs)/(dtot-point.d_km)); //Eq 18
         }
-        double Srim = *std::max_element(slopes.begin(),slopes.end());
+
+        double Srim = max_slope_rx;
 
         double dbp = (hrs-hts+Srim*dtot)/(Stim+Srim); //Eq 19
         double nub = (hts+Stim*dbp-(hts*(dtot-dbp)+hrs*dbp)/dtot) *
@@ -64,30 +80,33 @@ double DiffractionLoss::bullLoss(const std::vector<double> d, const std::vector<
     return Luc + (1-std::exp(-Luc/6.0))*(10+0.02*dtot); 
 }
 
-double DiffractionLoss::delta_bullington(const ProfilePath& path, const double hts, const double hrs, const double hstd, 
+double DiffractionLoss::delta_bullington(const PathProfile::Path& path, const double hts, const double hrs, const double hstd, 
         const double hsrd, const double ap, const double freqGHz,
         const double omega, const Enumerations::PolarizationType pol){
 
     //TODO figure out if its worth using ProfilePath or just pass two vectors around
 
     //Actual heights and profile
-    double Lbulla = DiffractionLoss::bullLoss(path.d, path.h, hts, hrs, ap, freqGHz);
+    double Lbulla = DiffractionLoss::bullLoss(path, hts, hrs, ap, freqGHz);
     
     //modified heights and zero profile
+    PathProfile::Path zeroHeightPath;
+    for (auto point : path){
+        zeroHeightPath.push_back(PathProfile::ProfilePoint(point.d_km, 0));
+    }
     double hts1 = hts - hstd;
     double hrs1 = hrs - hsrd;
-    std::vector<double> h1(path.length,0.0);
-    double Lbulls = DiffractionLoss::bullLoss(path.d, h1, hts1, hrs1, ap, freqGHz);
+    double Lbulls = DiffractionLoss::bullLoss(zeroHeightPath, hts1, hrs1, ap, freqGHz);
 
     //Spherical Earth Diffraction Loss
-    double dtot = path.d.back() - path.d.front();
+    double dtot = path.back().d_km - path.front().d_km;
     double Ldsph = DiffractionLoss::se_diffLoss(dtot, hts1, hrs1, ap, freqGHz,omega,pol);
 
     //Eq 40
     return Lbulla + std::max(Ldsph - Lbulls, 0.0);
 }
 
-DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const ProfilePath& path, const double hts, const double hrs, const double hstd, 
+DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const PathProfile::Path& path, const double hts, const double hrs, const double hstd, 
         const double hsrd, double freqGHz, const double omega, const double p, const double b0, 
         const double DN, const Enumerations::PolarizationType pol){
 

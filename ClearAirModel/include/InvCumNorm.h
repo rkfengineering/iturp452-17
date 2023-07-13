@@ -6,8 +6,8 @@
 //From ITU-R P.452-17 Annex 1 Attachment 3
 
 /// @brief Approximation to inverse cumulative normal distribution function for x<0.5
-/// @param x threshold probability (fraction)
+/// @param prob threshold probability (fraction)
 /// @return Value from normal distribution (mu = 0, sigma = 1)
-double inv_cum_norm(double x);
+double inv_cum_norm(double prob);
 
 #endif /* INV_CUM_NORM_H */

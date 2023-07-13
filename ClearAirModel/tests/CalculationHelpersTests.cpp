@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "ProfilePath.h"
+#include "PathProfile.h"
 #include "InvCumNorm.h"
 #include <filesystem>
 
@@ -33,12 +33,12 @@ TEST(ProfilePathTests, ProfilePath_loadDHProfileTest){
 		1663
 	};
 	for (uint16_t profileInd = 0; profileInd < PROFILE_LIST.size(); profileInd++) {
-		const ProfilePath PROFILE(testPathFileDir/std::filesystem::path(PROFILE_LIST[profileInd]));
-		EXPECT_NEAR(EXPECTED_FIRST_D_LIST[profileInd], PROFILE.d[0], TOLERANCE);
-		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.h[0], TOLERANCE);
-		EXPECT_NEAR(EXPECTED_LAST_D_LIST[profileInd], PROFILE.d[PROFILE.length-1], TOLERANCE);
-		EXPECT_NEAR(EXPECTED_LAST_H_LIST[profileInd], PROFILE.h[PROFILE.length-1], TOLERANCE);
-		EXPECT_NEAR(EXPECTED_LENGTH_LIST[profileInd], PROFILE.length, TOLERANCE);
+		const PathProfile::Path PROFILE(testPathFileDir/std::filesystem::path(PROFILE_LIST[profileInd]));
+		EXPECT_NEAR(EXPECTED_FIRST_D_LIST[profileInd], PROFILE.front().d_km, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_masl, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_LAST_D_LIST[profileInd], PROFILE.back().d_km, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_LAST_H_LIST[profileInd], PROFILE.back().h_masl, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_LENGTH_LIST[profileInd], PROFILE.size(), TOLERANCE);
 	}	
 }
 

@@ -1,36 +1,36 @@
 #ifndef CLUTTER_LOSS_H
 #define CLUTTER_LOSS_H
 
-#include "ProfilePath.h"
+#include "PathProfile.h"
 
 namespace ClutterLoss {
 
     struct ClutterLossResults {
         /// distances (km), heights (masl), and zone types of the profile points in the height gain model
-        ProfilePath path; 
+        PathProfile::Path path; 
         /// Tx Antenna center height above ground level (m) in the height gain model
-        double htgc;
+        double hg_height_tx_m;
         /// Rx Antenna center height above ground level (m) in the height gain model
-        double hrgc;
+        double hg_height_rx_m;
         /// Additional clutter shielding losses at Tx (dB)
-        double Aht;
+        double tx_clutterLoss_dB;
         /// Additional clutter shielding losses at Rx (dB)
-        double Ahr;
+        double rx_clutterLoss_dB;
     };
     
     /// @brief Compute the height-gain correlation from Section 4.5.4. See TABLE 4 for Nominal height/distance inputs
-    /// @param freq_GHz Transmitting Frequency (GHz) 
-    /// @param path     distances (km), heights (masl), and zone types of the profile points
-    /// @param htg      Tx Antenna center height above ground level (m)
-    /// @param hrg      Rx Antenna center height above ground level (m)
-    /// @param ha_t     Nominal clutter height above ground level at tx (m)
-    /// @param ha_r     Nominal clutter height above ground level at rx (m)
-    /// @param dk_t     Distance from nominal clutter point to tx antenna (km)
-    /// @param dk_r     Distance from nominal clutter point to rx antenna (km)
-    /// @return         See ClutterLossResults (dc,hc,zonec,htgc,hrgc,Aht,Ahr)
-    ClutterLossResults closs_corr(const double freq_GHz, const ProfilePath& path, 
-            const double htg, const double hrg, const double ha_t, const double ha_r,
-            const double dk_t, const double dk_r);
+    /// @param freq_GHz             Transmitting Frequency (GHz) 
+    /// @param path                 distances (km), heights (masl), and zone types of the profile points
+    /// @param height_tx_m          Tx Antenna center height above ground level (m)
+    /// @param height_rx_m          Rx Antenna center height above ground level (m)
+    /// @param tx_clutter_height_m  Nominal clutter height above ground level at tx (m)
+    /// @param rx_clutter_height_m  Nominal clutter height above ground level at rx (m)
+    /// @param tx_clutter_dist_km   Distance from nominal clutter point to tx antenna (km)
+    /// @param rx_clutter_dist_km   Distance from nominal clutter point to rx antenna (km)
+    /// @return         See ClutterLossResults 
+    ClutterLossResults clutterLoss_corr(const double& freq_GHz, const PathProfile::Path& path, 
+            const double& height_tx_m, const double& height_rx_m, const double& tx_clutter_height_m, const double& rx_clutter_height_m,
+            const double& tx_clutter_dist_km, const double& rx_clutter_dist_km);
 
 }//end namespace ClutterLoss
 

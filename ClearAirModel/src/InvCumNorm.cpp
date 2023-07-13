@@ -2,14 +2,14 @@
 
 #include <cmath>
 
-double inv_cum_norm(double x){
-    //if(x>0.5){
+double inv_cum_norm(double prob){
+    //if(prob>0.5){
     //    //Invalid input
     //    return std::nan;
     //}
 
-    //min x value 1e-6
-    double tx = std::sqrt(-2*std::log(std::max(x,1e-6)));
+    //min prob value 1e-6
+    double tx = std::sqrt(-2*std::log(std::max(prob,1e-6)));
     constexpr double C0 = 2.515516698;
     constexpr double C1 = 0.802853;
     constexpr double C2 = 0.010328;

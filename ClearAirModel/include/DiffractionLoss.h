@@ -1,20 +1,19 @@
 #ifndef DIFFRACTION_LOSS_H
 #define DIFFRACTION_LOSS_H
 
-#include "ProfilePath.h"
+#include "PathProfile.h"
 #include "Enumerations.h"
 
 namespace DiffractionLoss {
 
     /// @brief Bullington part of the diffraction loss from Section 4.2.1
-    /// @param d        Vector of distances di of the i-th profile point (km)
-    /// @param h        Vector of heights hi of the i-th profile point (masl)
+    /// @param path     Contains distance (km) and height (masl) profile points
     /// @param hts      Tx Antenna height (masl)
     /// @param hrs      Rx Antenna height (masl)
     /// @param ap       Effective Earth radius (km)
     /// @param freqGHz  Frequency (GHz)
     /// @return Loss from Bullington component (dB)
-    double bullLoss(const std::vector<double> d, const std::vector<double> h, const double hts,
+    double bullLoss(const PathProfile::Path& path, const double hts,
             const double hrs, const double ap, const double freqGHz);
 
     /// @brief Delta-Bullington diffraction loss model from Section 4.2.3
@@ -28,7 +27,7 @@ namespace DiffractionLoss {
     /// @param omega    Fraction of the path over sea
     /// @param pol      Polarization type (horizontal or vertical)
     /// @return Diffraction loss from complete delta-bullington model (dB)
-    double delta_bullington(const ProfilePath& path, const double hts, const double hrs, const double hstd, 
+    double delta_bullington(const PathProfile::Path& path, const double hts, const double hrs, const double hstd, 
             const double hsrd, const double ap, const double freqGHz,
             const double omega, const Enumerations::PolarizationType pol);
 
@@ -54,7 +53,7 @@ namespace DiffractionLoss {
     /// @param DN       Average radio-refractive index lapse-rate through the lowest 1km of the atmosphere (positive value) 
     /// @param pol      Polarization type (horizontal or vertical)
     /// @return 
-    DiffResults diffLoss(const ProfilePath& path, const double hts, const double hrs, const double hstd, 
+    DiffResults diffLoss(const PathProfile::Path& path, const double hts, const double hrs, const double hstd, 
             const double hsrd, double freqGHz, const double omega, const double p, const double b0, 
             const double DN, const Enumerations::PolarizationType pol);
 

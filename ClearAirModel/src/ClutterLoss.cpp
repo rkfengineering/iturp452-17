@@ -4,53 +4,51 @@
 
 //WARNING ignoring site shielding for now
 
-ClutterLoss::ClutterLossResults ClutterLoss::closs_corr(const double freq_GHz, 
-            const ProfilePath& path, const double htg, const double hrg, 
-            const double ha_t, const double ha_r, const double dk_t, const double dk_r){
+ClutterLoss::ClutterLossResults ClutterLoss::clutterLoss_corr(const double& freq_GHz, 
+            const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m, 
+            const double& tx_clutter_height_m, const double& rx_clutter_height_m, const double& tx_clutter_dist_km,
+            const double& rx_clutter_dist_km){
 
     int index1 = 0;
-    int index2 = path.length-1;
-    double htgc = htg;
-    double hrgc = hrg;
-    double Aht = 0;
-    double Ahr = 0;
-    double ha = ha_t;
-    double dk = dk_t;
+    int index2 = path.size()-1;
+    double hg_height_tx_m = height_tx_m;
+    double hg_height_rx_m = height_rx_m;
+    double tx_clutterLoss_dB = 0;
+    double rx_clutterLoss_dB = 0;
 
     //make sure clutter model is applicable (clutter higher than antenna height)
-    if(ha>htg){
-        double Ffc = 0.25+0.374*(1+std::tanh(7.5*(freq_GHz-0.5))); //Eq 57a
-        Aht = 10.25*Ffc*std::exp(-dk)*(1-std::tanh(6*(htg/ha-0.625)))-0.33; //Eq 57
+    if(tx_clutter_height_m>height_tx_m){
+        const double Ffc = 0.25+0.374*(1+std::tanh(7.5*(freq_GHz-0.5))); //Eq 57a
+        tx_clutterLoss_dB = 10.25*Ffc*std::exp(-tx_clutter_dist_km)*(1-std::tanh(6*(height_tx_m/tx_clutter_height_m-0.625)))-0.33; //Eq 57
 
         //path length correction
-        auto it = std::find_if(path.d.begin(),path.d.end(),[dk](double point){return point>=dk;});
-        if(it!=path.d.end()){
-            index1 = it-path.d.begin();
+        auto it = std::find_if(path.begin(),path.end(),
+            [tx_clutter_dist_km](PathProfile::ProfilePoint point){return point.d_km>=tx_clutter_dist_km;});
+        if(it!=path.end()){
+            index1 = it-path.begin();
         }
         else{
-            index1 = path.length-1;
+            index1 = path.size()-1;
         }
-        htgc = ha_t;
+        hg_height_tx_m = tx_clutter_height_m;
 
     }
 
-    ha = ha_r;
-    dk = dk_r;
-
-    if(ha>hrg){
-        double Ffc = 0.25+0.374*(1+std::tanh(7.5*(freq_GHz-0.5))); //Eq 57a
-        Ahr = 10.25*Ffc*std::exp(-dk)*(1-std::tanh(6*(hrg/ha-0.625)))-0.33; //Eq 57
+    if(rx_clutter_height_m>height_rx_m){
+        const double Ffc = 0.25+0.374*(1+std::tanh(7.5*(freq_GHz-0.5))); //Eq 57a
+        rx_clutterLoss_dB = 10.25*Ffc*std::exp(-rx_clutter_dist_km)*(1-std::tanh(6*(height_rx_m/rx_clutter_height_m-0.625)))-0.33; //Eq 57
 
         //path length correction
-        double rx_clutter_loc = path.d.back()-dk;
-        auto it = std::find_if(path.d.begin(),path.d.end(),[rx_clutter_loc](double point){return point>rx_clutter_loc;});
-        if(it!=path.d.end()){
-            index2 = it-path.d.begin();
+        const double rx_clutter_loc = path.back().d_km-rx_clutter_dist_km;
+        auto it = std::find_if(path.begin(),path.end(),
+            [rx_clutter_loc](PathProfile::ProfilePoint point){return point.d_km>rx_clutter_loc;});
+        if(it!=path.end()){
+            index2 = it-path.begin();
         }
         else{
             index2 = 0;
         }
-        hrgc = ha_r;
+        hg_height_rx_m = rx_clutter_height_m;
     }
 
     //error check
@@ -59,21 +57,20 @@ ClutterLoss::ClutterLossResults ClutterLoss::closs_corr(const double freq_GHz,
     //}
 
     //TODO this can probably be optimized instead of just copying
-    ProfilePath modified_path;
-    modified_path.d = std::vector<double>(path.d.begin()+index1, path.d.begin()+index2);
-    double offset = *(path.d.begin()+index1);
-    std::for_each(modified_path.d.begin(), modified_path.d.end(), [offset](double& x){x -= offset;});
-
-    modified_path.h = std::vector<double>(path.h.begin()+index1, path.h.begin()+index2);
-    modified_path.zone = std::vector<int>(path.zone.begin()+index1, path.zone.begin()+index2);
-    modified_path.length = index2-index1;
+    PathProfile::Path modified_path;
+    const double offset = (*(path.begin()+index1)).d_km;
+    //loop through middle segment of path
+    for(auto it = path.begin()+index1; it<path.begin()+index2; it++){
+        const PathProfile::ProfilePoint point = *it;
+        modified_path.push_back(PathProfile::ProfilePoint(point.d_km-offset, point.h_masl, point.zone));
+    }
 
     ClutterLossResults results;
     results.path = modified_path;
-    results.htgc = htgc;
-    results.hrgc = hrgc;
-    results.Aht = Aht;
-    results.Ahr = Ahr;
+    results.hg_height_tx_m = hg_height_tx_m;
+    results.hg_height_rx_m = hg_height_rx_m;
+    results.tx_clutterLoss_dB = tx_clutterLoss_dB;
+    results.rx_clutterLoss_dB = rx_clutterLoss_dB;
 
     return results;
 }
