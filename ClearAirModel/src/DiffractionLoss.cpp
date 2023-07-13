@@ -3,195 +3,204 @@
 #include "MathHelpers.h"
 #include <algorithm>
 #include <cmath>
+#include "PhysicalConstants.h"
 
-double constexpr SPEED_OF_LIGHT = 0.2998; //m*GHz
-
-double DiffractionLoss::bullLoss(const PathProfile::Path& path, const double hts,
-        const double hrs, const double ap, const double freqGHz){
+double DiffractionLoss::bullLoss(const PathProfile::Path& path, const double& height_tx_masl,
+        const double& height_rx_masl, const double& eff_radius_p_km, const double& freqGHz){
     
-    const double Ce = 1.0/ap; //effective Earth Curvature
-    const double lam = SPEED_OF_LIGHT/freqGHz; //wavelength in m
+    const double Ce = 1.0/eff_radius_p_km; //effective Earth Curvature
+    const double lam = PhysicalConstants::SPEED_OF_LIGHT_M_GHZ/freqGHz; //wavelength in m
 
-    double dtot = path.back().d_km-path.front().d_km;//total path length
-    double Luc = 0;//knife edge loss
+    const double d_tot = path.back().d_km-path.front().d_km;//total path length
+    double loss_knifeEdge_dB = 0;//knife edge loss
 
     //Find intermediate profile point with highest slope from Tx
 
-    //int points = d.size();//assume arrays have intermediate points
-    //std::vector<double> slopes(points-2);
-    
     //need to exclude first and last point
     const PathProfile::ProfilePoint secondPoint = *(path.begin()+1);
-    double max_slope_tx = (secondPoint.h_masl+500*Ce*secondPoint.d_km*(dtot-secondPoint.d_km)-hts)/secondPoint.d_km;
+
+    //function to calculate slope from tx at every point
+    auto calc_max_slope_tx = [Ce,d_tot,height_tx_masl](PathProfile::ProfilePoint pt){
+        return (pt.h_masl+500*Ce*pt.d_km*(d_tot-pt.d_km)-height_tx_masl)/pt.d_km; //Eq 14
+    };
+
+    //get max slope to profile point from tx 
+    double max_slope_tx = calc_max_slope_tx(secondPoint);
     for(auto it = path.begin()+2; it<path.end()-1;it++){
-        const PathProfile::ProfilePoint point = *it;
-        max_slope_tx = std::max(max_slope_tx,(point.h_masl+500*Ce*point.d_km*(dtot-point.d_km)-hts)/point.d_km); //Eq 14
+        max_slope_tx = std::max(max_slope_tx,calc_max_slope_tx(*it)); 
     }
 
-    double Stim = max_slope_tx;//*std::max_element(slopes.begin(),slopes.end());
     //Slope of line from Tx to Rx assuming LOS
-    double Str = (hrs-hts)/dtot; //Eq 15
+    const double slope_tr_los = (height_rx_masl-height_tx_masl)/d_tot; //Eq 15
 
     //Case 1 LOS path
-    if(Stim<Str){
-        //calculate diffraction parameter at every profile point
+    if(max_slope_tx<slope_tr_los){
+        //function to calculate nu
+        auto calc_nu = [Ce, height_tx_masl, d_tot, height_rx_masl, lam](PathProfile::ProfilePoint pt){
+            return ((pt.h_masl+500*Ce*pt.d_km*(d_tot-pt.d_km)
+                    -(height_tx_masl*(d_tot-pt.d_km)+height_rx_masl*pt.d_km)/d_tot) *
+                    std::sqrt(0.002*d_tot/(lam*pt.d_km*(d_tot-pt.d_km))));//Eq 16
+        };
 
-        double numax = ((secondPoint.h_masl+500*Ce*secondPoint.d_km*(dtot-secondPoint.d_km)
-                -(hts*(dtot-secondPoint.d_km)+hrs*secondPoint.d_km)/dtot) *
-                std::sqrt(0.002*dtot/(lam*secondPoint.d_km*(dtot-secondPoint.d_km)))); 
+        //calculate diffraction parameter at every profile point
+        double numax = calc_nu(secondPoint);
         for(auto it = path.begin()+2; it<path.end()-1;it++){
-            const PathProfile::ProfilePoint point = *it;
-            const double nu = ((point.h_masl+500*Ce*point.d_km*(dtot-point.d_km)
-                    -(hts*(dtot-point.d_km)+hrs*point.d_km)/dtot) *
-                    std::sqrt(0.002*dtot/(lam*point.d_km*(dtot-point.d_km))));//Eq 14
-            numax = std::max(numax,nu); 
+            numax = std::max(numax,calc_nu(*it)); 
         }
 
-  
         if (numax > -0.78){
             //Eq 13, 17 Knife Edge Loss Approximation
-            Luc = 6.9 + 20*std::log10(std::sqrt(MathHelpers::simpleSquare(numax-0.1)+1)+numax-0.1);
+            loss_knifeEdge_dB = 6.9 + 20*std::log10(std::sqrt(MathHelpers::simpleSquare(numax-0.1)+1)+numax-0.1);
         }
     }
     //Case 2 Transhorizon path
     else{
         //Find intermediate profile point with highest slope from Rx
 
-        double max_slope_rx = (secondPoint.h_masl+500*Ce*secondPoint.d_km*(dtot-secondPoint.d_km)-hrs)/(dtot-secondPoint.d_km);
+        //function to calculate slope from rx at every point
+        auto calc_max_slope_rx = [Ce,d_tot,height_rx_masl](PathProfile::ProfilePoint pt){
+            return (pt.h_masl+500*Ce*pt.d_km*(d_tot-pt.d_km)-height_rx_masl)/(d_tot-pt.d_km); //Eq 18
+        };
+
+        //get max slope to profile point from rx 
+        double max_slope_rx = calc_max_slope_rx(secondPoint);
         for(auto it = path.begin()+2; it<path.end()-1;it++){
-            const PathProfile::ProfilePoint point = *it;
-            max_slope_rx = std::max(max_slope_rx,(point.h_masl+500*Ce*point.d_km*(dtot-point.d_km)-hrs)/(dtot-point.d_km)); //Eq 18
+            max_slope_rx = std::max(max_slope_rx,calc_max_slope_rx(*it)); 
         }
 
-        double Srim = max_slope_rx;
+        //distance from bullington point to tx
+        const double dbp = (height_rx_masl-height_tx_masl+max_slope_rx*d_tot)/(max_slope_tx+max_slope_rx); //Eq 19
 
-        double dbp = (hrs-hts+Srim*dtot)/(Stim+Srim); //Eq 19
-        double nub = (hts+Stim*dbp-(hts*(dtot-dbp)+hrs*dbp)/dtot) *
-            std::sqrt(0.002*dtot/(lam*dbp*(dtot-dbp))); //Eq 20
+        //diffraction parameter nu at bullington point
+        const double nub = (height_tx_masl+max_slope_tx*dbp-(height_tx_masl*(d_tot-dbp)+height_rx_masl*dbp)/d_tot) *
+            std::sqrt(0.002*d_tot/(lam*dbp*(d_tot-dbp))); //Eq 20
         
         if (nub > -0.78){
             //Eq 13, 21 Knife Edge Loss Approximation
-            Luc = 6.9 + 20*std::log10(std::sqrt(MathHelpers::simpleSquare(nub-0.1)+1)+nub-0.1);
+            loss_knifeEdge_dB = 6.9 + 20*std::log10(std::sqrt(MathHelpers::simpleSquare(nub-0.1)+1)+nub-0.1);
         }
-
     }
-
     //Eq 22 Bullington Loss 
-    return Luc + (1-std::exp(-Luc/6.0))*(10+0.02*dtot); 
+    return loss_knifeEdge_dB + (1-std::exp(-loss_knifeEdge_dB/6.0))*(10+0.02*d_tot); 
 }
 
-double DiffractionLoss::delta_bullington(const PathProfile::Path& path, const double hts, const double hrs, const double hstd, 
-        const double hsrd, const double ap, const double freqGHz,
-        const double omega, const Enumerations::PolarizationType pol){
-
-    //TODO figure out if its worth using ProfilePath or just pass two vectors around
+double DiffractionLoss::delta_bullington(const PathProfile::Path& path, const double& height_tx_masl, const double& height_rx_masl,
+        const double& eff_height_itx_masl, const double& eff_height_irx_masl, const double& eff_radius_p_km, const double& freqGHz,
+        const double& frac_over_sea, const Enumerations::PolarizationType& pol){
 
     //Actual heights and profile
-    double Lbulla = DiffractionLoss::bullLoss(path, hts, hrs, ap, freqGHz);
+    const double Lbulla = DiffractionLoss::bullLoss(path, height_tx_masl, height_rx_masl, eff_radius_p_km, freqGHz);
     
     //modified heights and zero profile
     PathProfile::Path zeroHeightPath;
     for (auto point : path){
-        zeroHeightPath.push_back(PathProfile::ProfilePoint(point.d_km, 0));
+        zeroHeightPath.push_back(PathProfile::ProfilePoint(point.d_km, 0.0));
     }
-    double hts1 = hts - hstd;
-    double hrs1 = hrs - hsrd;
-    double Lbulls = DiffractionLoss::bullLoss(zeroHeightPath, hts1, hrs1, ap, freqGHz);
+    const double mod_height_tx_masl= height_tx_masl- eff_height_itx_masl;
+    const double mod_height_rx_masl= height_rx_masl- eff_height_irx_masl;
+    const double Lbulls = DiffractionLoss::bullLoss(zeroHeightPath, mod_height_tx_masl, mod_height_rx_masl, eff_radius_p_km, freqGHz);
 
     //Spherical Earth Diffraction Loss
-    double dtot = path.back().d_km - path.front().d_km;
-    double Ldsph = DiffractionLoss::se_diffLoss(dtot, hts1, hrs1, ap, freqGHz,omega,pol);
+    const double d_tot = path.back().d_km - path.front().d_km;
+    const double Ldsph = DiffractionLoss::se_diffLoss(d_tot, mod_height_tx_masl, mod_height_rx_masl, 
+                                                eff_radius_p_km, freqGHz,frac_over_sea,pol);
 
-    //Eq 40
+    //Eq 40 Delta Bullington Diffraction Loss (dB)
     return Lbulla + std::max(Ldsph - Lbulls, 0.0);
 }
 
-DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const PathProfile::Path& path, const double hts, const double hrs, const double hstd, 
-        const double hsrd, double freqGHz, const double omega, const double p, const double b0, 
-        const double DN, const Enumerations::PolarizationType pol){
+DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const PathProfile::Path& path, const double& height_tx_masl, 
+        const double& height_rx_masl, const double& eff_height_itx_masl, const double& eff_height_irx_masl, 
+        const double& freqGHz, const double& frac_over_sea, const double& p_percent, const double& b0, 
+        const double& DN, const Enumerations::PolarizationType& pol){
 
     //Median value of effective earth radius
-    double k50 = 157.0/(157-DN); //Eq 5
-    double ae = 6371 * k50; //Eq 6a
+    const double k50 = 157.0/(157.0-DN); //Eq 5
+    const double eff_radius_p50_km = 6371 * k50; //Eq 6a
     //kb = 3 at Point Incidence of anomalous propagation b0
-    double ab = 6371 * 3; //Eq 6b
+    const double eff_radius_pb_km = 6371 * 3; //Eq 6b
     
     //Delta Bullington Loss
-    double Ld50 = DiffractionLoss::delta_bullington(path,hts,hrs,hstd,hsrd,ae,freqGHz,omega,pol);
+    const double diff_loss_p50_dB = DiffractionLoss::delta_bullington(path,height_tx_masl,height_rx_masl,
+            eff_height_itx_masl,eff_height_irx_masl,eff_radius_p50_km,freqGHz,frac_over_sea,pol);
 
     DiffractionLoss::DiffResults results = DiffractionLoss::DiffResults();
-    results.Ld50 = Ld50;
-    if(p==50){
-        results.Ldp = Ld50;
+    results.diff_loss_p50_dB = diff_loss_p50_dB;
+    if(p_percent==50){
+        results.diff_loss_p_dB = diff_loss_p50_dB;
     }
-    else if(p<50){
+    else if(p_percent<50){
         //Delta Bullington Loss not exceeded for b0% time
-        double Ldb = DiffractionLoss::delta_bullington(path,hts,hrs,hstd,hsrd,ab,freqGHz,omega,pol);
+        const double Ldb = DiffractionLoss::delta_bullington(path,height_tx_masl,height_rx_masl,eff_height_itx_masl,
+                eff_height_irx_masl,eff_radius_pb_km,freqGHz,frac_over_sea,pol);
 
         //interpolation factor 
         double Fi;
-        if(p>b0){
-            Fi = inv_cum_norm(p/100)/inv_cum_norm(b0/100); //Eq 41a
+        if(p_percent>b0){
+            Fi = inv_cum_norm(p_percent/100)/inv_cum_norm(b0/100); //Eq 41a
         }
         else{
             Fi = 1;
         }
-        results.Ldp = Ld50 + Fi*(Ldb-Ld50);
+        results.diff_loss_p_dB = diff_loss_p50_dB + Fi*(Ldb-diff_loss_p50_dB);
     }
     //WARNING p>50 is not defined or checked for
     return results;
 }
 
-double DiffractionLoss::se_diffLoss(const double d_gc, const double hte, const double hre, const double ap,
-        const double freqGHz, const double omega, const Enumerations::PolarizationType pol){
+double DiffractionLoss::se_diffLoss(const double& distance_gc_km, const double& eff_height_itx_m, 
+        const double& eff_height_irx_m, const double& eff_radius_p_km,
+        const double& freqGHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol){
 
-    const double lam = SPEED_OF_LIGHT/freqGHz; //wavelength in m
+    const double lam = PhysicalConstants::SPEED_OF_LIGHT_M_GHZ/freqGHz; //wavelength in m
     //marginal LOS distance for a smooth path
-    double dlos = std::sqrt(2*ap)*std::sqrt(0.001*hte) + std::sqrt(0.001*hre);//Eq 23
+    const double d_los_km = std::sqrt(2*eff_radius_p_km)*std::sqrt(0.001*eff_height_itx_m) + std::sqrt(0.001*eff_height_irx_m);//Eq 23
 
     //use 4.2.2.1 if applicable
-    if(d_gc>=dlos){
-        return DiffractionLoss::se_first_term(d_gc,hte,hre,ap,freqGHz,omega,pol);
+    if(distance_gc_km>=d_los_km){
+        return DiffractionLoss::se_first_term(distance_gc_km,eff_height_itx_m,eff_height_irx_m,eff_radius_p_km,freqGHz,frac_over_sea,pol);
     }
     //otherwise:
 
-    double c = (hte-hre)/(hte+hre); //Eq 25d
-    double m = 250*d_gc*d_gc/(ap*(hte+hre)); //Eq 25e
-    double b = 2*std::sqrt((m+1)/(3*m))*std::cos(M_PI/3+
+    const double c = (eff_height_itx_m-eff_height_irx_m)/(eff_height_itx_m+eff_height_irx_m); //Eq 25d
+    const double m = 250*distance_gc_km*distance_gc_km/(eff_radius_p_km*(eff_height_itx_m+eff_height_irx_m)); //Eq 25e
+    const double b = 2*std::sqrt((m+1)/(3*m))*std::cos(M_PI/3+
         std::acos(3*c/2*std::sqrt(3* m / MathHelpers::simpleCube(m+1)))/3); //Eq 25c
-    double dse1 = d_gc/2*(1+b); //Eq 25a
-    double dse2 = d_gc - dse1; //Eq 25b
+    const double dse1 = distance_gc_km/2*(1+b); //Eq 25a
+    const double dse2 = distance_gc_km - dse1; //Eq 25b
 
-    double hse = ((hte - 500*dse1*dse1/ap)*dse2 + (hre - 500*dse1*dse2/ap)*dse1)/d_gc; //Eq 24
+    const double h_se = ((eff_height_itx_m - 500*dse1*dse1/eff_radius_p_km)*dse2 + (eff_height_irx_m - 500*dse1*dse2/eff_radius_p_km)*dse1)/distance_gc_km; //Eq 24
 
     //Required Clearance for zero diffraction loss
-    double hreq = 17.456 * std::sqrt(dse1*dse2*lam/d_gc); //Eq 26
-    if(hse>hreq){
+    const double h_req_m = 17.456 * std::sqrt(dse1*dse2*lam/distance_gc_km); //Eq 26
+    if(h_se>h_req_m){
         return 0.0;
     }
 
     //modified effective earth radius
-    double aem = 500*MathHelpers::simpleSquare(d_gc/(std::sqrt(hte)+std::sqrt(hre))); //Eq 27
+    const double aem = 500*MathHelpers::simpleSquare(distance_gc_km/(std::sqrt(eff_height_itx_m)+std::sqrt(eff_height_irx_m))); //Eq 27
     //Use 4.2.2.1 method with modified effective earth radius
-    double Ldft = DiffractionLoss::se_first_term(d_gc,hte,hre,aem,freqGHz,omega,pol);
-    if(Ldft<0){
+    const double loss_firstTerm_dB = DiffractionLoss::se_first_term(distance_gc_km,eff_height_itx_m,
+                                                                    eff_height_irx_m,aem,freqGHz,frac_over_sea,pol);
+    if(loss_firstTerm_dB<0.0){
         return 0.0;
     }
 
-    //Calculate spherical loss by interpolation
-    return (1-hse/hreq)*Ldft; //Eq 28
+    //Calculate spherical loss by interpolation (dB)
+    return (1-h_se/h_req_m)*loss_firstTerm_dB; //Eq 28
 }
 
-double DiffractionLoss::se_first_term_inner(const double epsr, const double sigma, const double d_gc, const double hte, 
-        const double hre, const double adft, const double freqGHz, const Enumerations::PolarizationType pol){
+double DiffractionLoss::se_first_term_inner(const double& eps_r, const double& sigma, const double& distance_gc_km, 
+        const double& eff_height_itx_m, const double& eff_height_irx_m, const double& eff_radius_km,
+        const double& freqGHz, const Enumerations::PolarizationType& pol){
     
     //Normalized factor for surface admittance for Horizontal Polarization
-    double K = 0.036*std::pow((adft*freqGHz),-1.0/3)*std::pow((MathHelpers::simpleSquare(epsr-1)+
+    double K = 0.036*std::pow((eff_radius_km*freqGHz),-1.0/3)*std::pow((MathHelpers::simpleSquare(eps_r-1)+
         MathHelpers::simpleSquare(18*sigma/freqGHz)),-1.0/4); //Eq 30a
 
     //Normalized factor for surface admittance for Vertical Polarization
     if(pol!=Enumerations::PolarizationType::HorizontalPolarized){
-        double K_ver = K*std::sqrt(MathHelpers::simpleSquare(epsr)+MathHelpers::simpleSquare(18*sigma/freqGHz)); //Eq 30b
+        const double K_ver = K*std::sqrt(MathHelpers::simpleSquare(eps_r)+MathHelpers::simpleSquare(18*sigma/freqGHz)); //Eq 30b
         if(pol == Enumerations::PolarizationType::VerticalPolarized){
             K = K_ver;
         }
@@ -207,18 +216,18 @@ double DiffractionLoss::se_first_term_inner(const double epsr, const double sigm
     double beta_dft=1;
 
     if (freqGHz<0.3){
-        double K2 = K*K;
-        double K4 = K2*K2;
+        const double K2 = K*K;
+        const double K4 = K2*K2;
         beta_dft = (1+1.6*K2 + 0.67*K4)/(1+4.5*K2 + 1.53*K4); //Eq 31
     }
 
     //Normalized Distance
-    double X = 21.88 * beta_dft * std::pow((freqGHz/(adft*adft)),1.0/3) * d_gc; //Eq 32
+    const double X = 21.88 * beta_dft * std::pow((freqGHz/(eff_radius_km*eff_radius_km)),1.0/3) * distance_gc_km; //Eq 32
     
     //Eq 33,36
-    double B = 0.9575 * beta_dft*beta_dft * std::pow(freqGHz*freqGHz/adft,1.0/3);
-    double Bt = B*hte;
-    double Br = B*hre; 
+    const double B = 0.9575 * beta_dft*beta_dft * std::pow(freqGHz*freqGHz/eff_radius_km,1.0/3);
+    const double Bt = B*eff_height_itx_m;
+    const double Br = B*eff_height_irx_m; 
 
     //Distance Term, Eq 34
     double Fx;
@@ -246,21 +255,24 @@ double DiffractionLoss::se_first_term_inner(const double epsr, const double sigm
     } 
 
     //enforce minimum values
-    double min_GY = 2+20*std::log10(K);
+    const double min_GY = 2+20*std::log10(K);
     GYt = std::max(GYt, min_GY);
     GYr = std::max(GYr, min_GY);
 
     return -Fx-GYt-GYr; //Eq 37
 }         
 
-double DiffractionLoss::se_first_term(const double d_gc, const double hte, const double hre, const double adft,
-        const double freqGHz, const double omega, const Enumerations::PolarizationType pol){
+double DiffractionLoss::se_first_term(const double& distance_gc_km, const double& eff_height_itx_m, 
+        const double& eff_height_irx_m, const double& eff_radius_km,
+        const double& freqGHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol){
    
     //Loss over land, espr = 22, sigma = 0.003
-    double Ldft_land = DiffractionLoss::se_first_term_inner(22,0.003,d_gc,hte,hre,adft,freqGHz,pol);
+    const double loss_firstTerm_land_dB = DiffractionLoss::se_first_term_inner(22,0.003,distance_gc_km,eff_height_itx_m,
+                                                                    eff_height_irx_m, eff_radius_km,freqGHz,pol);
 
     //Loss over sea, espr = 80, sigma = 5
-    double Ldft_sea = DiffractionLoss::se_first_term_inner(80,5,d_gc,hte,hre,adft,freqGHz,pol);
+    const double loss_firstTerm_sea_dB = DiffractionLoss::se_first_term_inner(80,5,distance_gc_km,eff_height_itx_m,
+                                                                    eff_height_irx_m,eff_radius_km,freqGHz,pol);
 
-    return omega*Ldft_sea + (1-omega)*Ldft_land; //Eq 29
+    return frac_over_sea*loss_firstTerm_sea_dB + (1-frac_over_sea)*loss_firstTerm_land_dB; //Eq 29
 }

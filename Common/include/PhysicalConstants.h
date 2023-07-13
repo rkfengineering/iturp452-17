@@ -4,4 +4,6 @@ namespace PhysicalConstants {
     double constexpr SEMI_MINOR_B_M {6356752.314245};
     double constexpr EARTH_MEAN_RADIUS_KM {6371.0};
     double constexpr INV_FLATTENING {298.257223563};
+    double constexpr SPEED_OF_LIGHT_M_GHZ = 0.2998; //m*GHz
+
 }
