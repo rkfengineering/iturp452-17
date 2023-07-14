@@ -36,45 +36,4 @@ namespace PathProfile{
         Path(std::string csvPath);
     };
 }
-
-/*
-/// @brief 
-/// @param hst       Tx antenna height of the smooth-earth surface (amsl) (m)
-/// @param hsr       Rx antenna height of the smooth-earth surface (amsl) (m)
-/// @param hstd      Tx effective antenna height for the diffraction model (m)
-/// @param hsrd      Rx effective antenna height for the diffraction model (m)
-/// @param hte       Tx effective antenna height for the ducting/layer reflection model (m)
-/// @param hre       Rx effective antenna height for the ducting/layer reflection model (m)
-/// @param hm        Terrain roughness parameter (m)
-/// @param dlt       Interfering antenna horizon distance (km)
-/// @param dlr       Interfered-with antenna horizon distance (km)
-/// @param theta_t   Interfering antenna horizon elevation angle (mrad)
-/// @param theta_r   Interfered-with antenna horizon elevation angle (mrad)
-/// @param theta_tot Angular distance (mrad)
-/// @param pathtype  1 = LOS, 2 = transhorizon
-struct SmoothEarthResults{
-    double hst;
-    double hsr;
-    double hstd;
-    double hsrd;
-    double hte;
-    double hre;
-    double hm;
-    double dlt;
-    double dlr;
-    double theta_t;
-    double theta_r;
-    double theta_tot;
-    int pathtype;
-};
-
-/// @brief Smooth-Earth Effective Antenna Heights from Sections 4,5 of Annex 2 of ITU-R P.452.17
-/// @param path     Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
-/// @param htg      Tx antenna height above ground level (m)
-/// @param hrg      Rx antenna height above ground level (m)
-/// @param ae       Median effective Earth's radius (km)
-/// @param freqGHz  Frequency (GHz)
-/// @return         See SmoothEarthResults
-SmoothEarthResults smoothEarthHeights(const PathProfile::Path& path, double htg, double hrg, double ae, double freqGHz);
-*/
 #endif /* PATH_PROFILE_H */

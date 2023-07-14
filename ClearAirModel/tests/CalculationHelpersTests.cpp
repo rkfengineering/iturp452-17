@@ -1,10 +1,13 @@
 #include "gtest/gtest.h"
 #include "PathProfile.h"
 #include "InvCumNorm.h"
+#include "EffectiveEarth.h"
 #include <filesystem>
 
 //Example Profile Path from ITU validation spreadsheet titled "delB_valid_temp.xlsx", pages "Path 1" to "Path 4"
 //embedded in ITU validation document titled "Validation Examples for the delta Bullington diffraction prediction method"
+
+//Unit Tests for smaller functions (not using ITU Validation data)
 
 const std::filesystem::path testPathFileDir("/home/ayeh/itu/ituModels/iturp452/ClearAirModel/tests/test_paths");
 
@@ -63,3 +66,18 @@ TEST(HelpersTests, InvCumNormTest){
 	//use 1e-6 for all probability below 1e-6
 	EXPECT_NEAR(inv_cum_norm(1e-7), inv_cum_norm(1e-6), TOLERANCE);
 }
+
+//quick logic test. make sure values make sense (the path isn't extremely jagged)
+//Endpoints estimated from Excel Trendline
+TEST(EffectiveEarthTests, EffectiveEarthTests_smoothEarthAMSLHeights){
+	const double EXPECTED_START = 635.2;
+	const double EXPECTED_END = 357.3;
+
+	const PathProfile::Path p(testPathFileDir/std::filesystem::path("path1.csv"));
+	const EffectiveEarth::HeightPair EFF_HEIGHT = EffectiveEarth::smoothEarthHeights_AMSL(p);
+
+	//high tolerance since the values were read off a graph
+	EXPECT_NEAR(EXPECTED_START,EFF_HEIGHT.tx_val,0.5);
+	EXPECT_NEAR(EXPECTED_END,EFF_HEIGHT.rx_val,0.5);
+}
+//test effective earth radius. check close to 8500 for some DN from data map

@@ -60,8 +60,9 @@ ClutterLoss::ClutterLossResults ClutterLoss::clutterLoss_corr(const double& freq
     PathProfile::Path modified_path;
     const double offset = (*(path.begin()+index1)).d_km;
     //loop through middle segment of path
-    for(auto it = path.begin()+index1; it<path.begin()+index2; it++){
-        const PathProfile::ProfilePoint point = *it;
+    PathProfile::ProfilePoint point;
+    for(auto cit = path.cbegin()+index1; cit<path.cbegin()+index2; ++cit){
+        point = *cit;
         modified_path.push_back(PathProfile::ProfilePoint(point.d_km-offset, point.h_masl, point.zone));
     }
 

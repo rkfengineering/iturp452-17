@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "DiffractionLoss.h"
-
+#include "EffectiveEarth.h"
 #include <filesystem>
 
 //Validation data from ITU validation spreadsheet titled "delB_valid_temp.xlsx", page "outputs"
@@ -23,6 +23,54 @@ static const std::vector<PathProfile::Path> PROFILE_LIST = {
     PathProfile::Path(testPathFileDir/std::filesystem::path("path3.csv")),
     PathProfile::Path(testPathFileDir/std::filesystem::path("path4.csv")),
 };
+
+TEST(EffectiveEarthTests, EffectiveEarthTests_diffractionModelHeights){
+    // Arrange
+	const std::vector<int> PATH_LIST = {
+		1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,4,4,4
+	};
+    const std::vector<double> HTS_LIST = {
+        30,50,20,40,70,
+        30,50,20,40,70,
+        30,50,20,40,70,
+        30,50,20,40,70
+    };
+    const std::vector<double> HRS_LIST = {
+        30,10,20,50,5,
+        30,10,20,50,5,
+        30,10,20,50,5,
+        30,10,20,50,5
+    };
+    const std::vector<double> FREQ_MHZ_LIST = {
+        1000,2500,600,200,150,
+        1000,2500,600,200,150,
+        1000,2500,600,200,150,
+        1000,2500,600,200,150
+    };
+    
+    const std::vector<double> EXPECTED_HTSP = {
+        211.3366061,233.4945304,204.7165548,215.727222,252.3138569,37.97366242,
+        57.97664284,27.97366242,47.97366242,78.00115495,110.1894677,132.6734925,
+        102.8893122,118.7202148,152.2011247,139.8495825,159.8495825,129.8495825,149.8495825,179.8495825
+    };
+    const std::vector<double> EXPECTED_HRSP = {
+        30,10,20,50,5,119.2363492,99.82603022,109.2363492,139.2363492,99.67579634,30,
+        11.9416848,22.52524312,50,5.664441408,543.1729418,523.1729418,533.1729418,
+        563.1729418,518.1729418,
+    };
+
+    for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
+        //hts,hrs needs to be in m asl, frequency in GHz
+        const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
+        const EffectiveEarth::HeightPair EFF_HEIGHT = EffectiveEarth::smoothEarthHeights_diffractionModel(
+            p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
+        const double HTS_AMSL = HTS_LIST[pathInd]+p.front().h_masl;
+        const double HRS_AMSL = HRS_LIST[pathInd]+p.back().h_masl;
+        //Equation 38 to calculate modified antenna heights
+        EXPECT_NEAR(EXPECTED_HTSP[pathInd],HTS_AMSL-EFF_HEIGHT.tx_val,TOLERANCE);
+        EXPECT_NEAR(EXPECTED_HRSP[pathInd],HRS_AMSL-EFF_HEIGHT.rx_val,TOLERANCE);
+    }
+}
 
 TEST(DiffractionLossTests, DiffractionLoss_bullingtonTest){
     // Arrange
@@ -55,7 +103,7 @@ TEST(DiffractionLossTests, DiffractionLoss_bullingtonTest){
         7.8709851352,0,15.30876397,6.526730443,0
     };
 
-    for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
+    for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); ++pathInd) {
         //hts,hrs needs to be in m asl, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
         const double LBA = DiffractionLoss::bullLoss(p,
@@ -111,10 +159,13 @@ TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthFTTest){
     
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //hts,hrs needs to be in m asl, frequency in GHz
-        const ProfilePath p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const double FT = DiffractionLoss::se_first_term(p.d.back()-p.d.front(), 
-            HTS_LIST[pathInd]+p.h.front(),
-            HRS_LIST[pathInd]+p.h.back(),
+        const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
+        const EffectiveEarth::HeightPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
+            p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
+        
+        const double FT = DiffractionLoss::se_first_term(p.back().d_km-p.front().d_km, 
+            height_eff_m.tx_val,
+            height_eff_m.rx_val,
             ae, FREQ_MHZ_LIST[pathInd]/1000.0,
             0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
         const double EXPECTED_FT = -EXPECTED_FX[pathInd] - EXPECTED_GY1[pathInd] - EXPECTED_GY2[pathInd];

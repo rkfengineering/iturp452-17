@@ -6,6 +6,10 @@
 
 namespace DiffractionLoss {
 
+    //WARNING the bullLoss function does not implement floor functions in Eq 14,16,18
+    //The ITU published MATLAB implementation ignores these as well
+    //The validation data fails when these floor functions are added
+
     /// @brief Bullington part of the diffraction loss from Section 4.2.1
     /// @param path             Contains distance (km) and height (masl) profile points
     /// @param height_tx_masl   Tx Antenna height (masl)

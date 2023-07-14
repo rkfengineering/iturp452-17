@@ -1,7 +1,9 @@
 #include "DiffractionLoss.h"
 #include "InvCumNorm.h"
 #include "MathHelpers.h"
+#include "EffectiveEarth.h"
 #include <algorithm>
+#include <limits>
 #include <cmath>
 #include "PhysicalConstants.h"
 
@@ -17,67 +19,66 @@ double DiffractionLoss::bullLoss(const PathProfile::Path& path, const double& he
     //Find intermediate profile point with highest slope from Tx
 
     //need to exclude first and last point
-    const PathProfile::ProfilePoint secondPoint = *(path.begin()+1);
 
-    //function to calculate slope from tx at every point
-    auto calc_max_slope_tx = [Ce,d_tot,height_tx_masl](PathProfile::ProfilePoint pt){
-        return (pt.h_masl+500*Ce*pt.d_km*(d_tot-pt.d_km)-height_tx_masl)/pt.d_km; //Eq 14
-    };
-
-    //get max slope to profile point from tx 
-    double max_slope_tx = calc_max_slope_tx(secondPoint);
-    for(auto it = path.begin()+2; it<path.end()-1;it++){
-        max_slope_tx = std::max(max_slope_tx,calc_max_slope_tx(*it)); 
+    //Eq 14 get max slope to profile point from tx 
+    double max_slope_tx = std::numeric_limits<double>::lowest();
+    double slope_tx;
+    PathProfile::ProfilePoint pt_tx;
+    for(auto cit = path.cbegin()+1; cit<path.cend()-1;++cit){
+        pt_tx = *cit;
+        slope_tx = (pt_tx.h_masl+500*Ce*pt_tx.d_km*(d_tot-pt_tx.d_km)-height_tx_masl)/pt_tx.d_km;
+        max_slope_tx = std::max(max_slope_tx,slope_tx); 
     }
 
-    //Slope of line from Tx to Rx assuming LOS
-    const double slope_tr_los = (height_rx_masl-height_tx_masl)/d_tot; //Eq 15
+    //Eq 15 Slope of line from Tx to Rx assuming LOS
+    const double slope_tr_los = (height_rx_masl-height_tx_masl)/d_tot;
 
     //Case 1 LOS path
     if(max_slope_tx<slope_tr_los){
-        //function to calculate nu
-        auto calc_nu = [Ce, height_tx_masl, d_tot, height_rx_masl, lam](PathProfile::ProfilePoint pt){
-            return ((pt.h_masl+500*Ce*pt.d_km*(d_tot-pt.d_km)
-                    -(height_tx_masl*(d_tot-pt.d_km)+height_rx_masl*pt.d_km)/d_tot) *
-                    std::sqrt(0.002*d_tot/(lam*pt.d_km*(d_tot-pt.d_km))));//Eq 16
-        };
 
-        //calculate diffraction parameter at every profile point
-        double numax = calc_nu(secondPoint);
-        for(auto it = path.begin()+2; it<path.end()-1;it++){
-            numax = std::max(numax,calc_nu(*it)); 
+        //calculate diffraction parameter at every intermediate profile point 
+        double numax = std::numeric_limits<double>::lowest();
+        double v1,v2,delta_d;
+        PathProfile::ProfilePoint pt;
+
+        //Eq 16 function to calculate diffraction parameter nu
+        for(auto cit = path.cbegin()+1; cit<path.cend()-1;++cit){
+            pt = *cit;
+            delta_d = d_tot-pt.d_km;
+            v1 = /*std::floor*/(pt.h_masl+500.0*Ce*pt.d_km*(delta_d)-(height_tx_masl*(delta_d)+height_rx_masl*pt.d_km)/d_tot);
+            v2 = std::sqrt(0.002*d_tot/(lam*pt.d_km*delta_d));
+            numax = std::max(numax,v1*v2); 
         }
 
         if (numax > -0.78){
             //Eq 13, 17 Knife Edge Loss Approximation
-            loss_knifeEdge_dB = 6.9 + 20*std::log10(std::sqrt(MathHelpers::simpleSquare(numax-0.1)+1)+numax-0.1);
+            loss_knifeEdge_dB = 6.9 + 20.0*std::log10(std::sqrt(MathHelpers::simpleSquare(numax-0.1)+1.0)+numax-0.1);
         }
     }
     //Case 2 Transhorizon path
     else{
         //Find intermediate profile point with highest slope from Rx
 
-        //function to calculate slope from rx at every point
-        auto calc_max_slope_rx = [Ce,d_tot,height_rx_masl](PathProfile::ProfilePoint pt){
-            return (pt.h_masl+500*Ce*pt.d_km*(d_tot-pt.d_km)-height_rx_masl)/(d_tot-pt.d_km); //Eq 18
-        };
-
-        //get max slope to profile point from rx 
-        double max_slope_rx = calc_max_slope_rx(secondPoint);
-        for(auto it = path.begin()+2; it<path.end()-1;it++){
-            max_slope_rx = std::max(max_slope_rx,calc_max_slope_rx(*it)); 
+        //Eq 18 get max slope to profile point from rx 
+        double max_slope_rx = std::numeric_limits<double>::lowest();
+        double slope_rx;
+        PathProfile::ProfilePoint pt_rx;
+        for(auto cit = path.cbegin()+1; cit<path.cend()-1;++cit){
+            pt_rx = *cit;
+            slope_rx = (pt_rx.h_masl+500*Ce*pt_rx.d_km*(d_tot-pt_rx.d_km)-height_rx_masl)/(d_tot-pt_rx.d_km); 
+            max_slope_rx = std::max(max_slope_rx,slope_rx); 
         }
 
-        //distance from bullington point to tx
-        const double dbp = (height_rx_masl-height_tx_masl+max_slope_rx*d_tot)/(max_slope_tx+max_slope_rx); //Eq 19
+        //Eq 19 distance from bullington point to tx
+        const double dbp = (height_rx_masl-height_tx_masl+max_slope_rx*d_tot)/(max_slope_tx+max_slope_rx); 
 
-        //diffraction parameter nu at bullington point
+        //Eq 20 diffraction parameter nu at bullington point
         const double nub = (height_tx_masl+max_slope_tx*dbp-(height_tx_masl*(d_tot-dbp)+height_rx_masl*dbp)/d_tot) *
-            std::sqrt(0.002*d_tot/(lam*dbp*(d_tot-dbp))); //Eq 20
+            std::sqrt(0.002*d_tot/(lam*dbp*(d_tot-dbp)));
         
         if (nub > -0.78){
             //Eq 13, 21 Knife Edge Loss Approximation
-            loss_knifeEdge_dB = 6.9 + 20*std::log10(std::sqrt(MathHelpers::simpleSquare(nub-0.1)+1)+nub-0.1);
+            loss_knifeEdge_dB = 6.9 + 20.0*std::log10(std::sqrt(MathHelpers::simpleSquare(nub-0.1)+1.0)+nub-0.1);
         }
     }
     //Eq 22 Bullington Loss 
@@ -114,15 +115,11 @@ DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const PathProfile::Path& 
         const double& freqGHz, const double& frac_over_sea, const double& p_percent, const double& b0, 
         const double& DN, const Enumerations::PolarizationType& pol){
 
-    //Median value of effective earth radius
-    const double k50 = 157.0/(157.0-DN); //Eq 5
-    const double eff_radius_p50_km = 6371 * k50; //Eq 6a
-    //kb = 3 at Point Incidence of anomalous propagation b0
-    const double eff_radius_pb_km = 6371 * 3; //Eq 6b
+    const double val_eff_radius_p50_km = EffectiveEarth::eff_radius_p50_km(DN);
     
     //Delta Bullington Loss
     const double diff_loss_p50_dB = DiffractionLoss::delta_bullington(path,height_tx_masl,height_rx_masl,
-            eff_height_itx_masl,eff_height_irx_masl,eff_radius_p50_km,freqGHz,frac_over_sea,pol);
+            eff_height_itx_masl,eff_height_irx_masl,val_eff_radius_p50_km,freqGHz,frac_over_sea,pol);
 
     DiffractionLoss::DiffResults results = DiffractionLoss::DiffResults();
     results.diff_loss_p50_dB = diff_loss_p50_dB;
@@ -132,7 +129,7 @@ DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const PathProfile::Path& 
     else if(p_percent<50){
         //Delta Bullington Loss not exceeded for b0% time
         const double Ldb = DiffractionLoss::delta_bullington(path,height_tx_masl,height_rx_masl,eff_height_itx_masl,
-                eff_height_irx_masl,eff_radius_pb_km,freqGHz,frac_over_sea,pol);
+                eff_height_irx_masl,EffectiveEarth::eff_radius_pb_km,freqGHz,frac_over_sea,pol);
 
         //interpolation factor 
         double Fi;
