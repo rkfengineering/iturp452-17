@@ -1,4 +1,5 @@
-## Introduction
+## Notes
+
 Clutterloss has been written but not tested yet
 
 Diffraction loss has been partially tested
@@ -13,6 +14,7 @@ InvCumNorm math function has been tested. This may be moved to a common library 
 
 Template README
 
+## Introduction
 This library implements most of the algorithms found in ITU-P. 452-17. A few of the algorithms have not been implemented yet and are currently being worked on (as of July 14th, 2023). 
 * Implementation is based on: [ITU P.452-17 Recommendation](https://www.itu.int/rec/R-REC-P.618-13-201712-I/en)
 * Validation of our implementation is based on: [ITU Official CG-3M3J-13 Validation Examples](https://www.itu.int/en/ITU-R/study-groups/rsg3/ionotropospheric/CG-3M3J-13-ValEx-Rev6.1.2.xlsx)
