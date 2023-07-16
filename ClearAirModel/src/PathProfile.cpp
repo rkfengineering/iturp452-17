@@ -17,6 +17,7 @@ PathProfile::ProfilePoint::ProfilePoint(double distance_km, double height_masl, 
 PathProfile::Path::Path(){
 }
 
+//TODO we can add an assumption that height==0 implies over sea. otherwise land. 
 //TODO look for a more standard approach to interfacing with csvs
 PathProfile::Path::Path(std::string csvPath){
     std::ifstream file;

@@ -117,55 +117,53 @@ TEST(DiffractionLossTests, DiffractionLoss_bullingtonTest){
     }
 }
 
-//Not sure what polarization type to use or what fraction over sea
+//Not sure what polarization type to use
 //not specified by validation data
-/*
+//Assume fraction over sea = 0 since the profile heights in amsl are positive values
+
+//Two tests are excluded (row 6 and row 17) since they take a different branch in the code
+//for the spherical earth calculations, resulting in a different modified effective earth radius being used
+//for the intermediate calculations that produce the values used to validate this first term function
 TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthFTTest){
     // Arrange
 	const std::vector<int> PATH_LIST = {
-		1,1,1,1,1,2,2,2,2,2,3,
+		1,1,1,1,2,2,2,2,2,
 	};
     const std::vector<double> HTS_LIST = {
-        30,50,20,40,70,
-        30,50,20,40,70,
-        70
+        30,50,20,70,
+        30,50,20,40,70
     };
     const std::vector<double> HRS_LIST = {
-        30,10,20,50,5,
-        30,10,20,50,5,
-        5
+        30,10,20,5,
+        30,10,20,50,5
     };
     const std::vector<double> FREQ_MHZ_LIST = {
-        1000,2500,600,200,150,
-        1000,2500,600,200,150,
-        150
+        1000,2500,600,150,
+        1000,2500,600,200,150
     };
 
     const std::vector<double> EXPECTED_FX = {
-        -59.40894528,-85.5189285,-48.12283666,-34.24816912,-26.15770548,
-        -102.9062648,-145.2758435,-84.49345195,-54.44670331,-48.32185499,
-        -30.1070985
+        -59.40894528,-85.5189285,-48.12283666,-26.15770548,
+        -102.9062648,-145.2758435,-84.49345195,-54.44670331,-48.32185499
     };
     const std::vector<double> EXPECTED_GY1 = {
-        39.52373705,62.46549974,30.34301718,18.03764354,16.59625588,
-        7.40810458,23.83868156,0.127517272,-1.774893492,1.161982247,
-        22.3511602
+        39.52373705,62.46549974,30.34301718,16.59625588,
+        7.40810458,23.83868156,0.127517272,-1.774893492,1.161982247
     };
     const std::vector<double> EXPECTED_GY2 = {
-        4.536624536,-0.643878137,-3.134029165,-0.872488481,-23.57738733,
-        26.04381871,35.89852443,18.04945817,10.466862,3.806254354,
-        -15.23734738
+        4.536624536,-0.643878137,-3.134029165,-23.57738733,
+        26.04381871,35.89852443,18.04945817,10.466862,3.806254354
     };
     
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
-        //hts,hrs needs to be in m asl, frequency in GHz
+        //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
         const EffectiveEarth::HeightPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         
         const double FT = DiffractionLoss::se_first_term(p.back().d_km-p.front().d_km, 
-            height_eff_m.tx_val,
-            height_eff_m.rx_val,
+            HTS_LIST[pathInd]+p.front().h_masl-height_eff_m.tx_val, //effective height relative to ground
+            HRS_LIST[pathInd]+p.back().h_masl-height_eff_m.rx_val,
             ae, FREQ_MHZ_LIST[pathInd]/1000.0,
             0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
         const double EXPECTED_FT = -EXPECTED_FX[pathInd] - EXPECTED_GY1[pathInd] - EXPECTED_GY2[pathInd];
@@ -175,6 +173,6 @@ TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthFTTest){
         EXPECT_NEAR(EXPECTED_FT,FT,0.1);
     }
 }
-*/
+
 //TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthTest){
 //TEST(DiffractionLossTests, DiffractionLoss_deltaBullingtonTest){

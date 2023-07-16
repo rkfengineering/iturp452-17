@@ -192,8 +192,8 @@ double DiffractionLoss::se_first_term_inner(const double& eps_r, const double& s
         const double& freqGHz, const Enumerations::PolarizationType& pol){
     
     //Normalized factor for surface admittance for Horizontal Polarization
-    double K = 0.036*std::pow((eff_radius_km*freqGHz),-1.0/3)*std::pow((MathHelpers::simpleSquare(eps_r-1)+
-        MathHelpers::simpleSquare(18*sigma/freqGHz)),-1.0/4); //Eq 30a
+    double K = 0.036*std::pow((eff_radius_km*freqGHz),-1.0/3.0)*std::pow((MathHelpers::simpleSquare(eps_r-1.0)+
+        MathHelpers::simpleSquare(18.0*sigma/freqGHz)),-1.0/4.0); //Eq 30a
 
     //Normalized factor for surface admittance for Vertical Polarization
     if(pol!=Enumerations::PolarizationType::HorizontalPolarized){
@@ -215,16 +215,18 @@ double DiffractionLoss::se_first_term_inner(const double& eps_r, const double& s
     if (freqGHz<0.3){
         const double K2 = K*K;
         const double K4 = K2*K2;
-        beta_dft = (1+1.6*K2 + 0.67*K4)/(1+4.5*K2 + 1.53*K4); //Eq 31
+        beta_dft = (1.0+1.6*K2 + 0.67*K4)/(1.0+4.5*K2 + 1.53*K4); //Eq 31
     }
 
     //Normalized Distance
     const double X = 21.88 * beta_dft * std::pow((freqGHz/(eff_radius_km*eff_radius_km)),1.0/3) * distance_gc_km; //Eq 32
     
     //Eq 33,36
-    const double B = 0.9575 * beta_dft*beta_dft * std::pow(freqGHz*freqGHz/eff_radius_km,1.0/3);
-    const double Bt = B*eff_height_itx_m;
-    const double Br = B*eff_height_irx_m; 
+    const double Y = 0.9575 *beta_dft * std::pow(freqGHz*freqGHz/eff_radius_km,1.0/3);
+    const double Yt = Y*eff_height_itx_m;
+    const double Yr = Y*eff_height_irx_m;
+    const double Bt = beta_dft*Yt;//This can be optimized for speed if needed
+    const double Br = beta_dft*Yr;//Yt and Yr are exposed for easier debugging
 
     //Distance Term, Eq 34
     double Fx;
