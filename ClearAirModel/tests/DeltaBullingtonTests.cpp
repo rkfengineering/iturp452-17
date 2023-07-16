@@ -174,5 +174,103 @@ TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthFTTest){
     }
 }
 
-//TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthTest){
-//TEST(DiffractionLossTests, DiffractionLoss_deltaBullingtonTest){
+TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthTest){
+    // Arrange
+	const std::vector<int> PATH_LIST = {
+		1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,4,4,4
+	};
+    const std::vector<double> HTS_LIST = {
+        30,50,20,40,70,
+        30,50,20,40,70,
+        30,50,20,40,70,
+        30,50,20,40,70
+    };
+    const std::vector<double> HRS_LIST = {
+        30,10,20,50,5,
+        30,10,20,50,5,
+        30,10,20,50,5,
+        30,10,20,50,5
+    };
+    const std::vector<double> FREQ_MHZ_LIST = {
+        1000,2500,600,200,150,
+        1000,2500,600,200,150,
+        1000,2500,600,200,150,
+        1000,2500,600,200,150
+    };
+
+    const std::vector<double> EXPECTED_LSPH = {
+        15.3485837,23.6973069,20.91384864,14.32933641,33.13883693,
+        69.45434151,85.53863749,66.31647651,45.7547348,43.35361839,
+        0,0,0,0,10.63765222,
+        0,0,0,0,0
+    };
+
+    for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
+        //input effective antanna heights relative to ground, frequency in GHz
+        const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
+        const EffectiveEarth::HeightPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
+            p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
+        
+        const double LSPH = DiffractionLoss::se_diffLoss(p.back().d_km-p.front().d_km, 
+            HTS_LIST[pathInd]+p.front().h_masl-height_eff_m.tx_val, //effective height relative to ground
+            HRS_LIST[pathInd]+p.back().h_masl-height_eff_m.rx_val,
+            ae, FREQ_MHZ_LIST[pathInd]/1000.0,
+            0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
+
+        //suggested tolerance 0.1 dB from Notes page of spreadsheet. 
+        //Validation data uses 3e8 for speed of light, model uses 2.998e8
+        EXPECT_NEAR(EXPECTED_LSPH[pathInd],LSPH,0.1);
+    }
+}
+
+TEST(DiffractionLossTests, DiffractionLoss_deltaBullingtonTest){
+    // Arrange
+	const std::vector<int> PATH_LIST = {
+		1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,4,4,4
+	};
+    const std::vector<double> HTS_LIST = {
+        30,50,20,40,70,
+        30,50,20,40,70,
+        30,50,20,40,70,
+        30,50,20,40,70
+    };
+    const std::vector<double> HRS_LIST = {
+        30,10,20,50,5,
+        30,10,20,50,5,
+        30,10,20,50,5,
+        30,10,20,50,5
+    };
+    const std::vector<double> FREQ_MHZ_LIST = {
+        1000,2500,600,200,150,
+        1000,2500,600,200,150,
+        1000,2500,600,200,150,
+        1000,2500,600,200,150
+    };
+
+    const std::vector<double> EXPECTED_LOSS = {
+        34.44302652,42.32928281,36.34606901,27.69744396,42.99074274,
+        69.83036947,90.68232743,66.46062522,46.38832061,51.38547874,
+        17.62040631,25.1016907,20.25488733,10.1899085,20.73949248,
+        7.870985135,0,15.30876397,6.526730443,0
+    };
+
+    for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
+        //input effective antanna heights relative to ground, frequency in GHz
+        const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
+        const EffectiveEarth::HeightPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
+            p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
+        
+        const double LOSS_VAL = DiffractionLoss::delta_bullington(
+            p, 
+            HTS_LIST[pathInd]+p.front().h_masl,
+            HRS_LIST[pathInd]+p.back().h_masl,
+            height_eff_m.tx_val,
+            height_eff_m.rx_val,
+            ae, FREQ_MHZ_LIST[pathInd]/1000.0,
+            0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
+
+        //suggested tolerance 0.1 dB from Notes page of spreadsheet. 
+        //Validation data uses 3e8 for speed of light, model uses 2.998e8
+        EXPECT_NEAR(EXPECTED_LOSS[pathInd],LOSS_VAL,0.1);
+    }
+}

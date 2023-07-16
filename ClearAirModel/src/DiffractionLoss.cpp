@@ -150,8 +150,8 @@ double DiffractionLoss::se_diffLoss(const double& distance_gc_km, const double& 
         const double& freqGHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol){
 
     const double lam = PhysicalConstants::SPEED_OF_LIGHT_M_GHZ/freqGHz; //wavelength in m
-    //marginal LOS distance for a smooth path
-    const double d_los_km = std::sqrt(2*eff_radius_p_km)*std::sqrt(0.001*eff_height_itx_m) + std::sqrt(0.001*eff_height_irx_m);//Eq 23
+    //Equation 23 marginal LOS distance for a smooth path
+    const double d_los_km = std::sqrt(2.0*eff_radius_p_km)*(std::sqrt(0.001*eff_height_itx_m) + std::sqrt(0.001*eff_height_irx_m));
 
     //use 4.2.2.1 if applicable
     if(distance_gc_km>=d_los_km){
@@ -166,10 +166,12 @@ double DiffractionLoss::se_diffLoss(const double& distance_gc_km, const double& 
     const double dse1 = distance_gc_km/2*(1+b); //Eq 25a
     const double dse2 = distance_gc_km - dse1; //Eq 25b
 
-    const double h_se = ((eff_height_itx_m - 500*dse1*dse1/eff_radius_p_km)*dse2 + (eff_height_irx_m - 500*dse1*dse2/eff_radius_p_km)*dse1)/distance_gc_km; //Eq 24
+    const double h_se = ((eff_height_itx_m - 500.0*dse1*dse1/eff_radius_p_km)*dse2 + 
+                        (eff_height_irx_m - 500.0*dse2*dse2/eff_radius_p_km)*dse1)
+                        /distance_gc_km; //Eq 24
 
-    //Required Clearance for zero diffraction loss
-    const double h_req_m = 17.456 * std::sqrt(dse1*dse2*lam/distance_gc_km); //Eq 26
+    //Equation 26 Required Clearance for zero diffraction loss
+    const double h_req_m = 17.456 * std::sqrt(dse1*dse2*lam/distance_gc_km);
     if(h_se>h_req_m){
         return 0.0;
     }
@@ -179,12 +181,13 @@ double DiffractionLoss::se_diffLoss(const double& distance_gc_km, const double& 
     //Use 4.2.2.1 method with modified effective earth radius
     const double loss_firstTerm_dB = DiffractionLoss::se_first_term(distance_gc_km,eff_height_itx_m,
                                                                     eff_height_irx_m,aem,freqGHz,frac_over_sea,pol);
+    
     if(loss_firstTerm_dB<0.0){
         return 0.0;
     }
 
     //Calculate spherical loss by interpolation (dB)
-    return (1-h_se/h_req_m)*loss_firstTerm_dB; //Eq 28
+    return (1.0-h_se/h_req_m)*loss_firstTerm_dB; //Eq 28
 }
 
 double DiffractionLoss::se_first_term_inner(const double& eps_r, const double& sigma, const double& distance_gc_km, 
