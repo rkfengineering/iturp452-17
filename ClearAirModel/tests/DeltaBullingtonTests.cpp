@@ -5,7 +5,10 @@
 
 //Validation data from ITU validation spreadsheet titled "delB_valid_temp.xlsx", page "outputs"
 //embedded in ITU validation document titled "Validation Examples for the delta Bullington diffraction prediction method"
+//https://www.itu.int/en/ITU-R/study-groups/rsg3/ionotropospheric/Validation%20examples%20for%20the%20delta%20Bullington%20diffraction%20prediction%20method.docx
 
+//If there's a way to use relative paths that would be nice. The paths from the validation data have been isolated as separate
+//csv files and put in a subdirectory in the tests folder
 const std::filesystem::path testPathFileDir("/home/ayeh/itu/ituModels/iturp452/ClearAirModel/tests/test_paths");
 
 namespace {
@@ -16,7 +19,6 @@ namespace {
 }
 
 //TODO move this stuff to a test case set up class
-
 static const std::vector<PathProfile::Path> PROFILE_LIST = {
     PathProfile::Path(testPathFileDir/std::filesystem::path("path1.csv")),
     PathProfile::Path(testPathFileDir/std::filesystem::path("path2.csv")),

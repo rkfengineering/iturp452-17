@@ -3,7 +3,8 @@
 Clutterloss has been written but not tested yet
 
 Diffraction loss has been partially tested
-* bullington loss passes. still need to debug spherical earth, delta bullington, and total diffraction loss functions 
+* delta bullington loss (and helper functions) passes.
+* diffraction loss for time percentage is not tested yet; the first set of validation data only covers the delta bullington function 
 
 Effective Earth has been partially tested
 * AMSL, diffractionModelHeights passes. Ducting Model heights has not been written yet
