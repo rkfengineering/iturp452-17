@@ -3,6 +3,8 @@
 
 #include "PathProfile.h"
 
+//Section 4.5 Additional clutter losses
+
 namespace ClutterLoss {
 
     struct ClutterLossResults {

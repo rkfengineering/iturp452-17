@@ -9,8 +9,8 @@ ClutterLoss::ClutterLossResults ClutterLoss::clutterLoss_corr(const double& freq
             const double& tx_clutter_height_m, const double& rx_clutter_height_m, const double& tx_clutter_dist_km,
             const double& rx_clutter_dist_km){
 
-    int index1 = 0;
-    int index2 = path.size()-1;
+    u_int16_t index1 = 0;
+    u_int16_t index2 = path.size()-1;
     double hg_height_tx_m = height_tx_m;
     double hg_height_rx_m = height_rx_m;
     double tx_clutterLoss_dB = 0;

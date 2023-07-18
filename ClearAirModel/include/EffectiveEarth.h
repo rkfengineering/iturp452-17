@@ -17,24 +17,44 @@ namespace EffectiveEarth{
     //TODO split this into smaller functions
 
     //struct for returning tx/rx height pairs
-    struct HeightPair{
+    struct TxRxPair{
         double tx_val;
         double rx_val;
     };
 
-    
     /// @brief Annex 2 Section 5.1.6.2 Creates a smooth least-squares straight line approximation for the path
     ///        WARNING Does not account for Eq 168
     /// @param path Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
     /// @return Tx,Rx endpoint heights for the smooth-earth surface (amsl) (m)
-    HeightPair smoothEarthHeights_AMSL(const PathProfile::Path& path);
+    TxRxPair smoothEarthHeights_AMSL(const PathProfile::Path& path);
 
     /// @brief Annex 2 Section 5.1.6.3 Calculates effective Surface Heights for the diffraction model
     /// @param path Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
     /// @param height_tx_m      Tx antenna height above ground level (m)
     /// @param height_rx_m      Rx antenna height above ground level (m)
     /// @return Tx,Rx effective antenna heights for the diffraction model (m)
-    HeightPair smoothEarthHeights_diffractionModel(const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m);
+    TxRxPair smoothEarthHeights_diffractionModel(const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m);
+
+    //Struct for returning horizon angles and horizon distances
+    //These values are intrinsically connected and would be difficult to calculate separately
+    struct HorizonAnglesAndDistances{
+        TxRxPair horizonDist_km;
+        TxRxPair horizonElevation_mrad;
+    };
+
+    /// @brief Annex 1 Attachment 2 Section 4,5 Calculating Antenna Horizon Elevation Angle and Horizon Distances
+    /// @param path                 Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
+    /// @param height_tx_masl       Tx Antenna height (masl)
+    /// @param height_rx_masl       Rx Antenna height (masl)
+    /// @param eff_radius_med_km    Median effective Earth's radius (km)
+    /// @param freq_GHz             Frequency (GHz)
+    /// @return Antenna Horizon Distances (km) and Horizon Elevation Angles (mrad)
+    HorizonAnglesAndDistances getHorizonAnglesAndDistances(const PathProfile::Path& path, const double& height_tx_masl,
+                                const double& height_rx_masl, const double& eff_radius_med_km, const double& freq_GHz);
+
+
+//TODO implement function for equation 159
+
 
 /*
     /// @brief 
@@ -73,9 +93,9 @@ namespace EffectiveEarth{
     /// @param height_tx_m      Tx antenna height above ground level (m)
     /// @param height_rx_m      Rx antenna height above ground level (m)
     /// @param eff_radius_med_km       Median effective Earth's radius (km)
-    /// @param freqGHz  Frequency (GHz)
+    /// @param freq_GHz  Frequency (GHz)
     /// @return         See SmoothEarthResults
     SmoothEarthResults smoothEarthHeights(const PathProfile::Path& path, double& height_tx_m, 
-            double& height_rx_m, double& eff_radius_med_km, double& freqGHz);*/
+            double& height_rx_m, double& eff_radius_med_km, double& freq_GHz);*/
 }
 #endif /* EFFECTIVE_EARTH_H */

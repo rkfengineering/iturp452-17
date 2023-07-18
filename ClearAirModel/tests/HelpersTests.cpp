@@ -2,12 +2,15 @@
 #include "PathProfile.h"
 #include "InvCumNorm.h"
 #include "EffectiveEarth.h"
+#include "BasicProp.h"
+#include "PowerUnitConversionHelpers.h"
+#include "DataStructures.h"
 #include <filesystem>
 
 //Example Profile Path from ITU validation spreadsheet titled "delB_valid_temp.xlsx", pages "Path 1" to "Path 4"
 //embedded in ITU validation document titled "Validation Examples for the delta Bullington diffraction prediction method"
 
-//Unit Tests for smaller functions (not using ITU Validation data)
+//Unit Tests for smaller functions (not directly using ITU Validation data)
 
 const std::filesystem::path testPathFileDir("/home/ayeh/itu/ituModels/iturp452/ClearAirModel/tests/test_paths");
 
@@ -16,9 +19,46 @@ namespace {
 	double constexpr TOLERANCE = 1.0e-6;
 }
 
+TEST(ProfilePathTests, ProfilePath_loadProfileTest){
+	const std::vector<std::string> PROFILE_LIST = {
+		"dbull_path1.csv", "test_profile_mixed_109km.csv"
+	};
+	const std::vector<double> EXPECTED_FIRST_D_LIST = {
+		0,0
+	};
+	const std::vector<double> EXPECTED_FIRST_H_LIST = {
+		800,40
+	};
+	const std::vector<int> EXPECTED_FIRST_ZONE_LIST = {
+		0,1
+	};
+	const std::vector<double> EXPECTED_LAST_D_LIST = {
+		83.07993853,109
+	};
+	const std::vector<double> EXPECTED_LAST_H_LIST = {
+		302,183
+	};
+	const std::vector<int> EXPECTED_LAST_ZONE_LIST = {
+		0,2
+	};
+	const std::vector<double> EXPECTED_LENGTH_LIST = {
+		1663,110
+	};
+	for (uint16_t profileInd = 0; profileInd < PROFILE_LIST.size(); profileInd++) {
+		const PathProfile::Path PROFILE(testPathFileDir/std::filesystem::path(PROFILE_LIST[profileInd]));
+		EXPECT_NEAR(EXPECTED_FIRST_D_LIST[profileInd], PROFILE.front().d_km, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_masl, TOLERANCE);
+		EXPECT_EQ(EXPECTED_FIRST_ZONE_LIST[profileInd], static_cast<int>(PROFILE.front().zone));
+		EXPECT_NEAR(EXPECTED_LAST_D_LIST[profileInd], PROFILE.back().d_km, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_LAST_H_LIST[profileInd], PROFILE.back().h_masl, TOLERANCE);
+		EXPECT_EQ(EXPECTED_LAST_ZONE_LIST[profileInd], static_cast<int>(PROFILE.back().zone));
+		EXPECT_NEAR(EXPECTED_LENGTH_LIST[profileInd], PROFILE.size(), TOLERANCE);
+	}	
+}
+
 TEST(ProfilePathTests, ProfilePath_loadDHProfileTest){
 	const std::vector<std::string> PROFILE_LIST = {
-		"path1.csv"
+		"dbull_path1.csv"
 	};
 	const std::vector<double> EXPECTED_FIRST_D_LIST = {
 		0
@@ -73,11 +113,25 @@ TEST(EffectiveEarthTests, EffectiveEarthTests_smoothEarthAMSLHeights){
 	const double EXPECTED_START = 635.2;
 	const double EXPECTED_END = 357.3;
 
-	const PathProfile::Path p(testPathFileDir/std::filesystem::path("path1.csv"));
-	const EffectiveEarth::HeightPair EFF_HEIGHT = EffectiveEarth::smoothEarthHeights_AMSL(p);
+	const PathProfile::Path p(testPathFileDir/std::filesystem::path("dbull_path1.csv"));
+	const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::smoothEarthHeights_AMSL(p);
 
 	//high tolerance since the values were read off a graph
 	EXPECT_NEAR(EXPECTED_START,EFF_HEIGHT.tx_val,0.5);
 	EXPECT_NEAR(EXPECTED_END,EFF_HEIGHT.rx_val,0.5);
 }
-//test effective earth radius. check close to 8500 for some DN from data map
+
+//Compare free space path loss value against other existing implementation
+//The constant used in Eq 8 uses less sig figs
+TEST(BasicPropTests, BasicPropTests_freeSpacePathLoss){
+	const double INPUT_FREQ_GHz = 2;
+	const double INPUT_DIST_KM = 500;
+
+	const double EXPECTED_LOSS = PowerUnitConversionHelpers::convertWattsToDb(
+		DataStructures::PATH_LOSS_SCALE_FACTOR * INPUT_DIST_KM * INPUT_FREQ_GHz) * 2.0;
+
+	const double VAL_LOSS =  BasicProp::freeSpacePathLoss(INPUT_DIST_KM,INPUT_FREQ_GHz);
+
+	//Eq 8 Constant used has resolution up to 0.1 dB
+	EXPECT_NEAR(EXPECTED_LOSS,VAL_LOSS,0.05);
+}

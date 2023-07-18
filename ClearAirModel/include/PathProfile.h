@@ -8,6 +8,7 @@ namespace PathProfile{
     /// <summary>
 	/// Specifies zone type of a profile point
 	/// First value is set to 1 to require that this value is set intentionally (default value 0 has no meaning).
+    /// WARNING the validation data test profile column labels contradict themselves. Assume A1 and zone type 1 both mean coastal land
 	/// </summary>
 	enum ZoneType {
 		CoastalLand = 1,

@@ -8,10 +8,10 @@
 #include "PhysicalConstants.h"
 
 double DiffractionLoss::bullLoss(const PathProfile::Path& path, const double& height_tx_masl,
-        const double& height_rx_masl, const double& eff_radius_p_km, const double& freqGHz){
+        const double& height_rx_masl, const double& eff_radius_p_km, const double& freq_GHz){
     
     const double Ce = 1.0/eff_radius_p_km; //effective Earth Curvature
-    const double lam = PhysicalConstants::SPEED_OF_LIGHT_M_GHZ/freqGHz; //wavelength in m
+    const double lam = PhysicalConstants::SPEED_OF_LIGHT_M_GHZ/freq_GHz; //wavelength in m
 
     const double d_tot = path.back().d_km-path.front().d_km;//total path length
     double loss_knifeEdge_dB = 0;//knife edge loss
@@ -42,10 +42,12 @@ double DiffractionLoss::bullLoss(const PathProfile::Path& path, const double& he
         PathProfile::ProfilePoint pt;
 
         //Eq 16 function to calculate diffraction parameter nu
+        //Also see Eq 155a
         for(auto cit = path.cbegin()+1; cit<path.cend()-1;++cit){
             pt = *cit;
             delta_d = d_tot-pt.d_km;
-            v1 = /*std::floor*/(pt.h_masl+500.0*Ce*pt.d_km*(delta_d)-(height_tx_masl*(delta_d)+height_rx_masl*pt.d_km)/d_tot);
+            //Note. There is no floor operation in this equation. The square brackets may not be rendered correctly. See Eq 155a
+            v1 = (pt.h_masl+500.0*Ce*pt.d_km*(delta_d)-(height_tx_masl*(delta_d)+height_rx_masl*pt.d_km)/d_tot);
             v2 = std::sqrt(0.002*d_tot/(lam*pt.d_km*delta_d));
             numax = std::max(numax,v1*v2); 
         }
@@ -86,11 +88,11 @@ double DiffractionLoss::bullLoss(const PathProfile::Path& path, const double& he
 }
 
 double DiffractionLoss::delta_bullington(const PathProfile::Path& path, const double& height_tx_masl, const double& height_rx_masl,
-        const double& eff_height_itx_masl, const double& eff_height_irx_masl, const double& eff_radius_p_km, const double& freqGHz,
+        const double& eff_height_itx_masl, const double& eff_height_irx_masl, const double& eff_radius_p_km, const double& freq_GHz,
         const double& frac_over_sea, const Enumerations::PolarizationType& pol){
 
     //Actual heights and profile
-    const double Lbulla = DiffractionLoss::bullLoss(path, height_tx_masl, height_rx_masl, eff_radius_p_km, freqGHz);
+    const double Lbulla = DiffractionLoss::bullLoss(path, height_tx_masl, height_rx_masl, eff_radius_p_km, freq_GHz);
     
     //modified heights and zero profile
     PathProfile::Path zeroHeightPath;
@@ -99,12 +101,12 @@ double DiffractionLoss::delta_bullington(const PathProfile::Path& path, const do
     }
     const double mod_height_tx_masl= height_tx_masl- eff_height_itx_masl;
     const double mod_height_rx_masl= height_rx_masl- eff_height_irx_masl;
-    const double Lbulls = DiffractionLoss::bullLoss(zeroHeightPath, mod_height_tx_masl, mod_height_rx_masl, eff_radius_p_km, freqGHz);
+    const double Lbulls = DiffractionLoss::bullLoss(zeroHeightPath, mod_height_tx_masl, mod_height_rx_masl, eff_radius_p_km, freq_GHz);
 
     //Spherical Earth Diffraction Loss
     const double d_tot = path.back().d_km - path.front().d_km;
     const double Ldsph = DiffractionLoss::se_diffLoss(d_tot, mod_height_tx_masl, mod_height_rx_masl, 
-                                                eff_radius_p_km, freqGHz,frac_over_sea,pol);
+                                                eff_radius_p_km, freq_GHz,frac_over_sea,pol);
 
     //Eq 40 Delta Bullington Diffraction Loss (dB)
     return Lbulla + std::max(Ldsph - Lbulls, 0.0);
@@ -112,14 +114,14 @@ double DiffractionLoss::delta_bullington(const PathProfile::Path& path, const do
 
 DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const PathProfile::Path& path, const double& height_tx_masl, 
         const double& height_rx_masl, const double& eff_height_itx_masl, const double& eff_height_irx_masl, 
-        const double& freqGHz, const double& frac_over_sea, const double& p_percent, const double& b0, 
+        const double& freq_GHz, const double& frac_over_sea, const double& p_percent, const double& b0, 
         const double& DN, const Enumerations::PolarizationType& pol){
 
     const double val_eff_radius_p50_km = EffectiveEarth::eff_radius_p50_km(DN);
     
     //Delta Bullington Loss
     const double diff_loss_p50_dB = DiffractionLoss::delta_bullington(path,height_tx_masl,height_rx_masl,
-            eff_height_itx_masl,eff_height_irx_masl,val_eff_radius_p50_km,freqGHz,frac_over_sea,pol);
+            eff_height_itx_masl,eff_height_irx_masl,val_eff_radius_p50_km,freq_GHz,frac_over_sea,pol);
 
     DiffractionLoss::DiffResults results = DiffractionLoss::DiffResults();
     results.diff_loss_p50_dB = diff_loss_p50_dB;
@@ -129,7 +131,7 @@ DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const PathProfile::Path& 
     else if(p_percent<50){
         //Delta Bullington Loss not exceeded for b0% time
         const double Ldb = DiffractionLoss::delta_bullington(path,height_tx_masl,height_rx_masl,eff_height_itx_masl,
-                eff_height_irx_masl,EffectiveEarth::eff_radius_pb_km,freqGHz,frac_over_sea,pol);
+                eff_height_irx_masl,EffectiveEarth::eff_radius_pb_km,freq_GHz,frac_over_sea,pol);
 
         //interpolation factor 
         double Fi;
@@ -147,15 +149,15 @@ DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const PathProfile::Path& 
 
 double DiffractionLoss::se_diffLoss(const double& distance_gc_km, const double& eff_height_itx_m, 
         const double& eff_height_irx_m, const double& eff_radius_p_km,
-        const double& freqGHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol){
+        const double& freq_GHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol){
 
-    const double lam = PhysicalConstants::SPEED_OF_LIGHT_M_GHZ/freqGHz; //wavelength in m
+    const double lam = PhysicalConstants::SPEED_OF_LIGHT_M_GHZ/freq_GHz; //wavelength in m
     //Equation 23 marginal LOS distance for a smooth path
     const double d_los_km = std::sqrt(2.0*eff_radius_p_km)*(std::sqrt(0.001*eff_height_itx_m) + std::sqrt(0.001*eff_height_irx_m));
 
     //use 4.2.2.1 if applicable
     if(distance_gc_km>=d_los_km){
-        return DiffractionLoss::se_first_term(distance_gc_km,eff_height_itx_m,eff_height_irx_m,eff_radius_p_km,freqGHz,frac_over_sea,pol);
+        return DiffractionLoss::se_first_term(distance_gc_km,eff_height_itx_m,eff_height_irx_m,eff_radius_p_km,freq_GHz,frac_over_sea,pol);
     }
     //otherwise:
 
@@ -180,7 +182,7 @@ double DiffractionLoss::se_diffLoss(const double& distance_gc_km, const double& 
     const double aem = 500*MathHelpers::simpleSquare(distance_gc_km/(std::sqrt(eff_height_itx_m)+std::sqrt(eff_height_irx_m))); //Eq 27
     //Use 4.2.2.1 method with modified effective earth radius
     const double loss_firstTerm_dB = DiffractionLoss::se_first_term(distance_gc_km,eff_height_itx_m,
-                                                                    eff_height_irx_m,aem,freqGHz,frac_over_sea,pol);
+                                                                    eff_height_irx_m,aem,freq_GHz,frac_over_sea,pol);
     
     if(loss_firstTerm_dB<0.0){
         return 0.0;
@@ -192,15 +194,15 @@ double DiffractionLoss::se_diffLoss(const double& distance_gc_km, const double& 
 
 double DiffractionLoss::se_first_term_inner(const double& eps_r, const double& sigma, const double& distance_gc_km, 
         const double& eff_height_itx_m, const double& eff_height_irx_m, const double& eff_radius_km,
-        const double& freqGHz, const Enumerations::PolarizationType& pol){
+        const double& freq_GHz, const Enumerations::PolarizationType& pol){
     
     //Normalized factor for surface admittance for Horizontal Polarization
-    double K = 0.036*std::pow((eff_radius_km*freqGHz),-1.0/3.0)*std::pow((MathHelpers::simpleSquare(eps_r-1.0)+
-        MathHelpers::simpleSquare(18.0*sigma/freqGHz)),-1.0/4.0); //Eq 30a
+    double K = 0.036*std::pow((eff_radius_km*freq_GHz),-1.0/3.0)*std::pow((MathHelpers::simpleSquare(eps_r-1.0)+
+        MathHelpers::simpleSquare(18.0*sigma/freq_GHz)),-1.0/4.0); //Eq 30a
 
     //Normalized factor for surface admittance for Vertical Polarization
     if(pol!=Enumerations::PolarizationType::HorizontalPolarized){
-        const double K_ver = K*std::sqrt(MathHelpers::simpleSquare(eps_r)+MathHelpers::simpleSquare(18*sigma/freqGHz)); //Eq 30b
+        const double K_ver = K*std::sqrt(MathHelpers::simpleSquare(eps_r)+MathHelpers::simpleSquare(18*sigma/freq_GHz)); //Eq 30b
         if(pol == Enumerations::PolarizationType::VerticalPolarized){
             K = K_ver;
         }
@@ -215,17 +217,17 @@ double DiffractionLoss::se_first_term_inner(const double& eps_r, const double& s
     //We can use beta_dft=1 for frequencies above 300 MHz
     double beta_dft=1;
 
-    if (freqGHz<0.3){
+    if (freq_GHz<0.3){
         const double K2 = K*K;
         const double K4 = K2*K2;
         beta_dft = (1.0+1.6*K2 + 0.67*K4)/(1.0+4.5*K2 + 1.53*K4); //Eq 31
     }
 
     //Normalized Distance
-    const double X = 21.88 * beta_dft * std::pow((freqGHz/(eff_radius_km*eff_radius_km)),1.0/3) * distance_gc_km; //Eq 32
+    const double X = 21.88 * beta_dft * std::pow((freq_GHz/(eff_radius_km*eff_radius_km)),1.0/3) * distance_gc_km; //Eq 32
     
     //Eq 33,36
-    const double Y = 0.9575 *beta_dft * std::pow(freqGHz*freqGHz/eff_radius_km,1.0/3);
+    const double Y = 0.9575 *beta_dft * std::pow(freq_GHz*freq_GHz/eff_radius_km,1.0/3);
     const double Yt = Y*eff_height_itx_m;
     const double Yr = Y*eff_height_irx_m;
     const double Bt = beta_dft*Yt;//This can be optimized for speed if needed
@@ -266,15 +268,15 @@ double DiffractionLoss::se_first_term_inner(const double& eps_r, const double& s
 
 double DiffractionLoss::se_first_term(const double& distance_gc_km, const double& eff_height_itx_m, 
         const double& eff_height_irx_m, const double& eff_radius_km,
-        const double& freqGHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol){
+        const double& freq_GHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol){
    
     //Loss over land, espr = 22, sigma = 0.003
     const double loss_firstTerm_land_dB = DiffractionLoss::se_first_term_inner(22,0.003,distance_gc_km,eff_height_itx_m,
-                                                                    eff_height_irx_m, eff_radius_km,freqGHz,pol);
+                                                                    eff_height_irx_m, eff_radius_km,freq_GHz,pol);
 
     //Loss over sea, espr = 80, sigma = 5
     const double loss_firstTerm_sea_dB = DiffractionLoss::se_first_term_inner(80,5,distance_gc_km,eff_height_itx_m,
-                                                                    eff_height_irx_m,eff_radius_km,freqGHz,pol);
+                                                                    eff_height_irx_m,eff_radius_km,freq_GHz,pol);
 
     return frac_over_sea*loss_firstTerm_sea_dB + (1-frac_over_sea)*loss_firstTerm_land_dB; //Eq 29
 }

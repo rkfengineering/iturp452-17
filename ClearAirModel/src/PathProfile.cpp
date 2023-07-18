@@ -39,13 +39,17 @@ PathProfile::Path::Path(std::string csvPath){
 
         for(u_int16_t i=0; i<n; i++){
             std::getline(ss,val,',');
+            //row 1 is the distance value
             if(i==0){
                 point.d_km = std::stod(val);
             }
+            //row 2 is the height value (m)
             else if(i==1){
                 point.h_masl = std::stod(val);
             }
-            else if(i==2){
+            //Row 3 is a label of the zone type, can be skipped
+            //Row 4 is an integer representing zone type
+            else if(i==3){
                 point.zone = static_cast<PathProfile::ZoneType>(std::stoi(val));
             }
         }

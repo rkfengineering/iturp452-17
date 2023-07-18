@@ -20,10 +20,10 @@ namespace {
 
 //TODO move this stuff to a test case set up class
 static const std::vector<PathProfile::Path> PROFILE_LIST = {
-    PathProfile::Path(testPathFileDir/std::filesystem::path("path1.csv")),
-    PathProfile::Path(testPathFileDir/std::filesystem::path("path2.csv")),
-    PathProfile::Path(testPathFileDir/std::filesystem::path("path3.csv")),
-    PathProfile::Path(testPathFileDir/std::filesystem::path("path4.csv")),
+    PathProfile::Path(testPathFileDir/std::filesystem::path("dbull_path1.csv")),
+    PathProfile::Path(testPathFileDir/std::filesystem::path("dbull_path2.csv")),
+    PathProfile::Path(testPathFileDir/std::filesystem::path("dbull_path3.csv")),
+    PathProfile::Path(testPathFileDir/std::filesystem::path("dbull_path4.csv")),
 };
 
 TEST(EffectiveEarthTests, EffectiveEarthTests_diffractionModelHeights){
@@ -64,7 +64,7 @@ TEST(EffectiveEarthTests, EffectiveEarthTests_diffractionModelHeights){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //hts,hrs needs to be in m asl, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::HeightPair EFF_HEIGHT = EffectiveEarth::smoothEarthHeights_diffractionModel(
+        const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::smoothEarthHeights_diffractionModel(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         const double HTS_AMSL = HTS_LIST[pathInd]+p.front().h_masl;
         const double HRS_AMSL = HRS_LIST[pathInd]+p.back().h_masl;
@@ -160,7 +160,7 @@ TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthFTTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::HeightPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
+        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         
         const double FT = DiffractionLoss::se_first_term(p.back().d_km-p.front().d_km, 
@@ -210,7 +210,7 @@ TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::HeightPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
+        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         
         const double LSPH = DiffractionLoss::se_diffLoss(p.back().d_km-p.front().d_km, 
@@ -259,7 +259,7 @@ TEST(DiffractionLossTests, DiffractionLoss_deltaBullingtonTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::HeightPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
+        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         
         const double LOSS_VAL = DiffractionLoss::delta_bullington(
