@@ -17,16 +17,22 @@ double BasicProp::pathLossWithGasAndMultipath(const double& d_tot_km, const doub
     const double waterVapor_hPa = rho * temp_K / 216.7;
 
     const double totalPressure_hPa = dryPressure_hPa + waterVapor_hPa;
-	const double specificAttenuation_dBPerKm = GasAttenuationHelpers::calculateSpecificTotalAttenuation_dBPerKm(
+
+    //Validation data from ITU uses P676-13 with frequencies below 1 GHz 
+    const double specificAttenuation_dBPerKm = GasAttenuationHelpers::calculateSpecificTotalAttenuation_dBPerKm(
                                             freq_GHz, temp_K, totalPressure_hPa, waterVapor_hPa);
-	// Equation 9
-	const double gasLoss_dB = specificAttenuation_dBPerKm * d_los_km;
+    // Equation 9
+    const double gasLoss_dB = specificAttenuation_dBPerKm * d_los_km;
+    
 
     //Equation 8
     const double freeSpaceWithGasLoss_dB = BasicProp::freeSpacePathLoss(d_los_km,freq_GHz) + gasLoss_dB;
 
+    //Equation 10a,10b
+    const double multipathFocusingCorrection_dB = BasicProp::multipathFocusingCorrection(d_horizon_t_km, d_horizon_r_km, p_percent);
+
     //Equation 11,12
-    return freeSpaceWithGasLoss_dB + BasicProp::multipathFocusingCorrection(d_horizon_t_km, d_horizon_r_km, p_percent);
+    return freeSpaceWithGasLoss_dB + multipathFocusingCorrection_dB;
 }
 
 double BasicProp::freeSpacePathLoss(const double& d_los_km, const double& freq_GHz){

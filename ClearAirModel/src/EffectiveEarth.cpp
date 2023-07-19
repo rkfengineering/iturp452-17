@@ -90,7 +90,7 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDis
     // calculate tx elevation angle
     double theta_tmax = std::numeric_limits<double>::lowest();
     
-    uint16_t tx_index;
+    uint16_t tx_index=0;
     double theta_i;
     PathProfile::ProfilePoint pt;
     //Eq 151 max elevation angle from tx to terrain point
@@ -107,7 +107,7 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDis
             tx_index = cit - path.cbegin();
         }
     }
-
+    
     //Equation 150 check if path is Line of Sight or Trans-Horizon
     const bool isTranshorizon = theta_tmax>theta_td;
 
@@ -123,12 +123,12 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDis
         //Calculate max rx elevation angle
         double theta_rmax = std::numeric_limits<double>::lowest();
         double theta_j,delta_d;
-        uint16_t rx_index;
+        uint16_t rx_index=0;
         for(auto cit = path.cbegin()+1; cit<path.cend()-1;++cit){
-            delta_d = d_tot-pt.d_km;
+            delta_d = d_tot-cit->d_km;
             //Equation 157 calculate elevation angle from rx to terrain point
             theta_j = 1e3*std::atan(
-                (pt.h_masl-height_rx_masl)/(1e3*delta_d)
+                (cit->h_masl-height_rx_masl)/(1e3*delta_d)
                 -delta_d/(2.0*eff_radius_med_km)
             );
             //assume prefer points closer to rx
@@ -156,12 +156,11 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDis
         //calculate diffraction parameter at every intermediate profile point 
         double numax = std::numeric_limits<double>::lowest();
         for(auto cit = path.cbegin()+1; cit<path.cend()-1;++cit){
-            pt = *cit;
-            delta_d = d_tot-pt.d_km;
+            delta_d = d_tot-cit->d_km;
 
             //Eq 16,155a function to calculate diffraction parameter nu
-            v1 = /*std::floor*/(pt.h_masl+500.0*Ce*pt.d_km*(delta_d)-(height_tx_masl*(delta_d)+height_rx_masl*pt.d_km)/d_tot);
-            v2 = std::sqrt(0.002*d_tot/(lam*pt.d_km*delta_d));
+            v1 = (cit->h_masl+500.0*Ce*cit->d_km*(delta_d)-(height_tx_masl*(delta_d)+height_rx_masl*cit->d_km)/d_tot);
+            v2 = std::sqrt(0.002*d_tot/(lam*cit->d_km*delta_d));
             nu = v1*v2;
             //assume prefer points closer to tx
             if(nu>numax){

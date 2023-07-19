@@ -136,7 +136,7 @@ DiffractionLoss::DiffResults DiffractionLoss::diffLoss(const PathProfile::Path& 
         //interpolation factor 
         double Fi;
         if(p_percent>b0){
-            Fi = inv_cum_norm(p_percent/100)/inv_cum_norm(b0/100); //Eq 41a
+            Fi = inv_cum_norm(p_percent/100.0)/inv_cum_norm(b0/100.0); //Eq 41a
         }
         else{
             Fi = 1;
@@ -217,7 +217,8 @@ double DiffractionLoss::se_first_term_inner(const double& eps_r, const double& s
     //We can use beta_dft=1 for frequencies above 300 MHz
     double beta_dft=1;
 
-    if (freq_GHz<0.3){
+    //using the shortcut results in errors ~1e-6 dB
+    if (true){//freq_GHz<0.3){
         const double K2 = K*K;
         const double K4 = K2*K2;
         beta_dft = (1.0+1.6*K2 + 0.67*K4)/(1.0+4.5*K2 + 1.53*K4); //Eq 31

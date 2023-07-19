@@ -35,6 +35,16 @@ namespace PathProfile{
         public:   
         Path();
         Path(std::string csvPath);
+
+        /// @brief Get the fraction of the total path that has the sea zone type
+        /// @return Fraction of the path over sea (omega in P452-17)
+        double getFracOverSea() const;
+
+        /// @brief Get the time percentage for which refractive index lapse-rates exceeding 100 N-units/km 
+        /// can be expected in the first 100m of the lower atmosphere
+        /// @param centerLatitude_deg The latitude (deg) of the path center point
+        /// @return Time percentage beta0 (%)
+        double getBeta0(double centerLatitude_deg) const;
     };
 }
 #endif /* PATH_PROFILE_H */

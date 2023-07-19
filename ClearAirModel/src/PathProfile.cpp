@@ -57,3 +57,91 @@ PathProfile::Path::Path(std::string csvPath){
     }
 }
 
+double PathProfile::Path::getFracOverSea() const{
+    double sea_dist = 0;
+    PathProfile::ProfilePoint lastPoint = *cbegin();
+    for(auto cit = cbegin()+1; cit<cend(); ++cit){
+        //add full interval (both points are sea type)
+        if(cit->zone==PathProfile::ZoneType::Sea && lastPoint.zone==PathProfile::ZoneType::Sea){
+            sea_dist += cit->d_km - lastPoint.d_km;
+        }
+        //add half interval (transition from sea to land or land to sea)
+        else if (cit->zone==PathProfile::ZoneType::Sea || lastPoint.zone==PathProfile::ZoneType::Sea){
+            sea_dist += (cit->d_km - lastPoint.d_km)/2.0;
+        }
+        lastPoint = *cit;
+    }
+    const double full_dist = back().d_km;
+    return sea_dist/full_dist;
+}
+
+//WARNING this function only works if the zone types are populated correctly (not checked)
+double PathProfile::Path::getBeta0(double centerLatitude_deg) const{
+    //get longest contiguous land and inland segments 
+
+    double longestLand=0;
+    double longestInland=0;
+    double currentLand=0;
+    double currentInland=0;
+    
+    PathProfile::ProfilePoint lastPoint = *cbegin();
+
+    for(auto cit = cbegin()+1; cit<cend(); ++cit){
+        //add full interval (both points are land type)
+        if(cit->zone!=PathProfile::ZoneType::Sea && lastPoint.zone!=PathProfile::ZoneType::Sea){
+            currentLand += cit->d_km - lastPoint.d_km;
+        }
+        //or add half interval (transition from sea to land or land to sea)
+        else if (cit->zone==PathProfile::ZoneType::Sea || lastPoint.zone==PathProfile::ZoneType::Sea){
+            currentLand += (cit->d_km - lastPoint.d_km)/2.0;
+            //reset 
+            if (cit->zone==PathProfile::ZoneType::Sea){
+                longestLand = std::max(longestLand,currentLand);
+                currentLand = 0;
+            }
+        }
+
+        //add full interval (both points are inland type)
+        if(cit->zone==PathProfile::ZoneType::Inland && lastPoint.zone==PathProfile::ZoneType::Inland){
+            currentInland += cit->d_km - lastPoint.d_km;
+        }
+        //or add half interval (transition to or from inland)
+        else if (cit->zone==PathProfile::ZoneType::Inland || lastPoint.zone==PathProfile::ZoneType::Inland){
+            currentInland += (cit->d_km - lastPoint.d_km)/2.0;
+            //reset 
+            if (cit->zone!=PathProfile::ZoneType::Inland){
+                longestInland = std::max(longestInland,currentInland);
+                currentInland = 0;
+            }
+        }
+        lastPoint = *cit;
+    }
+    //max values only update on transition out of zone. 
+    //check if the longest contiguous zone is at the end of the path
+    longestLand = std::max(longestLand,currentLand);
+    longestInland = std::max(longestInland,currentInland);
+
+    //calculate beta0
+
+    //Equation 3a
+    const double tau = 1.0-std::exp(-(4.12*1e-4*std::pow(longestInland,2.41)));
+    //Equation 3
+    const double mu1a = std::pow(10.0,-longestLand/(16.0-6.6*tau));
+    const double mu1b = std::pow(10.0,-5*(0.496+0.354*tau));
+    //limit to mu<=1
+    const double mu1 = std::min(std::pow(mu1a+mu1b, 0.2),1.0);
+
+    const double abs_phi = std::abs(centerLatitude_deg);
+    if (abs_phi<=70){
+        //Equation 4
+        const double mu4 = std::pow(10.0,(-0.935+0.0176*abs_phi)*std::log10(mu1));
+        //Equation 2
+        return std::pow(10.0, -0.015*abs_phi + 1.67)*mu1*mu4;
+    }
+    else{
+        //Equation 4
+        const double mu4 = std::pow(10.0,0.3*std::log10(mu1));
+        //Equation 2
+        return 4.17*mu1*mu4;
+    }
+}
