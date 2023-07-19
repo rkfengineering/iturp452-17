@@ -349,7 +349,7 @@ double GasAttenuationHelpers::calculateSpecificWaterAttenuation_dBPerKm(const do
     if (freq_GHz < 1.0 || freq_GHz > 1.0e3) {
         std::ostringstream oStrStream;
         oStrStream << "ERROR: GasAttenuation::calculateSpecificOxygenAttenuation_dBPerKm(): The given frequency is outside interval of valid frequencies ([0, 1000] GHz): " << freq_GHz << " GHz!";
-        throw std::domain_error(oStrStream.str());
+        //throw std::domain_error(oStrStream.str());
     }
 
     // Part of Equation #3 from ITU-R P.676-12
@@ -370,7 +370,7 @@ double GasAttenuationHelpers::calculateSpecificOxygenAttenuation_dBPerKm(const d
     if (freq_GHz < 1.0 || freq_GHz > 1.0e3) {
         std::ostringstream oStrStream;
         oStrStream << "ERROR: GasAttenuation::calculateSpecificWaterAttenuation_dBPerKm(): The given frequency is outside interval of valid frequencies ([0, 1000] GHz): " << freq_GHz << " GHz!";
-        throw std::domain_error(oStrStream.str());
+        //throw std::domain_error(oStrStream.str());
     }
 
     // Part of Equation #3 from ITU-R P.676-12
