@@ -1,8 +1,8 @@
-#include "InvCumNorm.h"
-
+#include "ClearAirModel/CalculationHelpers.h"
+#include "Common/PhysicalConstants.h"
 #include <cmath>
 
-double inv_cum_norm(double prob){
+double CalculationHelpers::inv_cum_norm(double prob){
     //if(prob>0.5){
     //    //Invalid input
     //    return std::nan;
@@ -19,4 +19,8 @@ double inv_cum_norm(double prob){
     
     double ksi = ((C2*tx+C1)*tx+C0)/(((D3*tx+D2)*tx+D1)*tx+1);
     return ksi-tx;
+}
+
+double CalculationHelpers::convert_freqGHz_to_wavelength_m(const double& freq_GHz){
+    return 1e-9*PhysicalConstants::SPEED_OF_LIGHT_M_PER_S/freq_GHz;
 }

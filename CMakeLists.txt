@@ -40,15 +40,11 @@ find_package(Threads)
 find_package(GTest REQUIRED)
 find_package(GSL REQUIRED)
 
+add_compile_definitions(CMAKE_ROOT_SRC_DIR="${CMAKE_SOURCE_DIR}/ituModels/itu_linux")
+
 enable_testing()
 
-add_subdirectory(Hello)
-add_subdirectory(Common)
-add_subdirectory(GasModel)
+add_subdirectory(ituModels/itu_linux/Common)
+add_subdirectory(ituModels/itu_linux/GasModel)
 add_subdirectory(ClearAirModel)
 
-#add_subdirectory(RainModel)
-#add_subdirectory(CloudModel)
-#add_subdirectory(ScintillationModel)
-#add_subdirectory(ItuModels)
-#add_subdirectory(ItuModelsWrapper)

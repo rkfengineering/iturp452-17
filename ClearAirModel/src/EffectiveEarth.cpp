@@ -1,14 +1,15 @@
-#include "EffectiveEarth.h"
-#include "PhysicalConstants.h"
+#include "ClearAirModel/EffectiveEarth.h"
+#include "ClearAirModel/CalculationHelpers.h"
+#include "Common/PhysicalConstants.h"
 #include <limits>
 #include <cmath>
 
-double EffectiveEarth::eff_radius_p50_km(const double& delta_N){
+double EffectiveEarth::calcMedianEffectiveRadius_km(const double& delta_N){
     const double k50 = 157.0/(157.0-delta_N); //Eq 5
     return 6371.0 * k50; //Eq 6a
 }
 
-EffectiveEarth::TxRxPair EffectiveEarth::smoothEarthHeights_AMSL(const PathProfile::Path& path){
+EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_helper_amsl_m(const PathProfile::Path& path){
 
     const double d_tot = path.back().d_km; //assume distances start at 0
     //Section 5.1.6.2
@@ -17,8 +18,8 @@ EffectiveEarth::TxRxPair EffectiveEarth::smoothEarthHeights_AMSL(const PathProfi
     PathProfile::ProfilePoint prevPoint = path.front();
     for(uint32_t i = 1; i<path.size(); ++i){ //start at second point
         const PathProfile::ProfilePoint point = path.at(i);
-        v1+=(point.d_km-prevPoint.d_km)*(point.h_masl+prevPoint.h_masl);//Eq 161
-        v2+=(point.d_km-prevPoint.d_km)*(point.h_masl*(2*point.d_km+prevPoint.d_km)+prevPoint.h_masl*(point.d_km+2*prevPoint.d_km)); //Eq 162
+        v1+=(point.d_km-prevPoint.d_km)*(point.h_asl_m+prevPoint.h_asl_m);//Eq 161
+        v2+=(point.d_km-prevPoint.d_km)*(point.h_asl_m*(2*point.d_km+prevPoint.d_km)+prevPoint.h_asl_m*(point.d_km+2*prevPoint.d_km)); //Eq 162
         prevPoint = point;
     }
     
@@ -30,12 +31,12 @@ EffectiveEarth::TxRxPair EffectiveEarth::smoothEarthHeights_AMSL(const PathProfi
     return height_results;
 }
 
-EffectiveEarth::TxRxPair EffectiveEarth::smoothEarthHeights_diffractionModel(const PathProfile::Path& path, 
+EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_m(const PathProfile::Path& path, 
         const double& height_tx_m, const double& height_rx_m){
 
     const double d_tot = path.back().d_km; //assume distances start at 0
-    const double height_tx_m_amsl = path.front().h_masl + height_tx_m;
-    const double height_rx_m_amsl = path.back().h_masl + height_rx_m;
+    const double height_tx_m_amsl = path.front().h_asl_m + height_tx_m;
+    const double height_rx_m_amsl = path.back().h_asl_m + height_rx_m;
 
     //Section 5.1.6.3
 
@@ -51,13 +52,13 @@ EffectiveEarth::TxRxPair EffectiveEarth::smoothEarthHeights_diffractionModel(con
     for (auto cit = path.begin()+1; cit<path.end()-1; ++cit){
         point = *cit;
         delta_d = d_tot-point.d_km;
-        height_val = point.h_masl-(height_tx_m_amsl*delta_d+height_rx_m_amsl*point.d_km)/d_tot; //Eq 165d
+        height_val = point.h_asl_m-(height_tx_m_amsl*delta_d+height_rx_m_amsl*point.d_km)/d_tot; //Eq 165d
         height_obs_max = std::max(height_obs_max, height_val);//Eq 165a
         alpha_obs_t_max = std::max(alpha_obs_t_max,height_val/point.d_km);             //Eq 165b
         alpha_obs_r_max = std::max(alpha_obs_r_max,height_val/delta_d);      //Eq 165c
     }
 
-    const auto height_se_m_amsl_pair = EffectiveEarth::smoothEarthHeights_AMSL(path);
+    const auto height_se_m_amsl_pair = EffectiveEarth::calcSmoothEarthTxRxHeights_helper_amsl_m(path);
 
     double hstp = height_se_m_amsl_pair.tx_val; //Eq 166a
     double hsrp = height_se_m_amsl_pair.rx_val; //Eq 166b
@@ -72,18 +73,18 @@ EffectiveEarth::TxRxPair EffectiveEarth::smoothEarthHeights_diffractionModel(con
     }
     
     EffectiveEarth::TxRxPair height_results = EffectiveEarth::TxRxPair();
-    height_results.tx_val = std::min(path.front().h_masl, hstp); //Eq 167 a,b
-    height_results.rx_val = std::min(path.back().h_masl, hsrp); //Eq 167 c,d
+    height_results.tx_val = std::min(path.front().h_asl_m, hstp); //Eq 167 a,b
+    height_results.rx_val = std::min(path.back().h_asl_m, hsrp); //Eq 167 c,d
     return height_results;
 }
 
-EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDistances(const PathProfile::Path& path,
-            const double& height_tx_masl, const double& height_rx_masl, const double& eff_radius_med_km, const double& freq_GHz){
+EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::calcHorizonAnglesAndDistances(const PathProfile::Path& path,
+            const double& height_tx_asl_m, const double& height_rx_asl_m, const double& eff_radius_med_km, const double& freq_GHz){
 
     const double d_tot = path.back().d_km;
     //Equation 153 Angle from tx to rx, relative to local horizon
     const double theta_td = 1e3*std::atan(
-        (height_rx_masl-height_tx_masl)/(1e3*d_tot)
+        (height_rx_asl_m-height_tx_asl_m)/(1e3*d_tot)
         -d_tot/(2.0*eff_radius_med_km)
     );
 
@@ -98,7 +99,7 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDis
         pt = *cit;
         //Equation 152 function to calculate elevation angle from tx to terrain point
         theta_i = 1e3*std::atan(
-            (pt.h_masl-height_tx_masl)/(1e3*pt.d_km)
+            (pt.h_asl_m-height_tx_asl_m)/(1e3*pt.d_km)
             -pt.d_km/(2.0*eff_radius_med_km)
         );
         //assume prefer points closer to tx
@@ -128,7 +129,7 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDis
             delta_d = d_tot-cit->d_km;
             //Equation 157 calculate elevation angle from rx to terrain point
             theta_j = 1e3*std::atan(
-                (cit->h_masl-height_rx_masl)/(1e3*delta_d)
+                (cit->h_asl_m-height_rx_asl_m)/(1e3*delta_d)
                 -delta_d/(2.0*eff_radius_med_km)
             );
             //assume prefer points closer to rx
@@ -150,7 +151,7 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDis
         //Effective Earth Curvature
         const double Ce = 1.0/eff_radius_med_km;
         //wavelength in m
-        const double lam = PhysicalConstants::SPEED_OF_LIGHT_M_GHZ/freq_GHz;
+        const double wavelength_m =  CalculationHelpers::convert_freqGHz_to_wavelength_m(freq_GHz);
 
         double v1,v2,nu,delta_d;
         //calculate diffraction parameter at every intermediate profile point 
@@ -159,8 +160,8 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDis
             delta_d = d_tot-cit->d_km;
 
             //Eq 16,155a function to calculate diffraction parameter nu
-            v1 = (cit->h_masl+500.0*Ce*cit->d_km*(delta_d)-(height_tx_masl*(delta_d)+height_rx_masl*cit->d_km)/d_tot);
-            v2 = std::sqrt(0.002*d_tot/(lam*cit->d_km*delta_d));
+            v1 = (cit->h_asl_m+500.0*Ce*cit->d_km*(delta_d)-(height_tx_asl_m*(delta_d)+height_rx_asl_m*cit->d_km)/d_tot);
+            v2 = std::sqrt(0.002*d_tot/(wavelength_m*cit->d_km*delta_d));
             nu = v1*v2;
             //assume prefer points closer to tx
             if(nu>numax){
@@ -173,7 +174,7 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::getHorizonAnglesAndDis
 
         //Equation 156a
         results.horizonElevation_mrad.rx_val = 1e3*std::atan(
-            (height_tx_masl-height_rx_masl)/(1e3*d_tot)
+            (height_tx_asl_m-height_rx_asl_m)/(1e3*d_tot)
             -d_tot/(2.0*eff_radius_med_km)
         );
         //Equation 158a
@@ -188,8 +189,8 @@ EffectiveEarth::SmoothEarthResults EffectiveEarth::smoothEarthHeights(const Path
         double& height_rx_m, double& eff_radius_med_km, double& freq_GHz){
 
     const double d_tot = path.back().d_km; //assume distances start at 0
-    const double hts = path.front().h_masl + height_tx_m;
-    const double hrs = path.back().h_masl + height_rx_m;
+    const double hts = path.front().h_asl_m + height_tx_m;
+    const double hrs = path.back().h_asl_m + height_rx_m;
 
     //Section 5.1.6.2
     double v1 = 0;
@@ -197,8 +198,8 @@ EffectiveEarth::SmoothEarthResults EffectiveEarth::smoothEarthHeights(const Path
     PathProfile::ProfilePoint prevPoint = path.front();
     for(uint32_t i = 1; i<path.size(); i++){ //start at second point
         const PathProfile::ProfilePoint point = path.at(i);
-        v1+=(point.d_km-prevPoint.d_km)*(point.h_masl+prevPoint.h_masl);//Eq 161
-        v2+=(point.d_km-prevPoint.d_km)*(point.h_masl*(2*point.d_km-prevPoint.d_km)+prevPoint.h_masl*(point.d_km-2*prevPoint.d_km)); //Eq 162
+        v1+=(point.d_km-prevPoint.d_km)*(point.h_asl_m+prevPoint.h_asl_m);//Eq 161
+        v2+=(point.d_km-prevPoint.d_km)*(point.h_asl_m*(2*point.d_km-prevPoint.d_km)+prevPoint.h_asl_m*(point.d_km-2*prevPoint.d_km)); //Eq 162
         prevPoint = point;
     }
     

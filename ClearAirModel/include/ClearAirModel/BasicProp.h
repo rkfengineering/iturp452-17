@@ -11,8 +11,8 @@ namespace BasicProp {
 
     /// @brief LOS transmission loss inlcuding short term effects according to Section 4.1
     /// @param d_tot_km             Distance between Tx and Rx antennas, assuming flat earth (km)
-    /// @param height_tx_masl       Tx Antenna height (masl)
-    /// @param height_rx_masl       Rx Antenna height (masl)
+    /// @param height_tx_asl_m       Tx Antenna height (asl_m)
+    /// @param height_rx_asl_m       Rx Antenna height (asl_m)
     /// @param freq_GHz              Frequency (GHz)
     /// @param temp_K               Temperature (K)
     /// @param dryPressure_hPa      Dry air pressure (hPa)
@@ -21,7 +21,7 @@ namespace BasicProp {
     /// @param d_horizon_r_km       Distance from Rx antenna to its horizon (km), see Note 1
     /// @param p_percent            Percentage of time not exceeded (%), 0<p<=50
     /// @return Transmission Loss (dB)
-    double pathLossWithGasAndMultipath(const double& d_tot_km, const double& height_tx_masl, const double& height_rx_masl,
+    double calcPathLossWithGasAndMultipath_dB(const double& d_tot_km, const double& height_tx_asl_m, const double& height_rx_asl_m,
                         const double& freq_GHz, const double& temp_K, const double& dryPressure_hPa, const double& frac_over_sea,
                         const double& d_horizon_t_km, const double& d_horizon_r_km, const double& p_percent);
     
@@ -29,14 +29,24 @@ namespace BasicProp {
     /// @param d_los_km 
     /// @param freq_GHz 
     /// @return Path Loss (dB)
-    double freeSpacePathLoss(const double& d_los_km, const double& freq_GHz);
+    double calcFreeSpacePathLoss_dB(const double& d_los_km, const double& freq_GHz);
 
     /// @brief Corrections for multipath and focusing effects for attenuation not ecveeded for time percentage p
     /// @param d_horizon_t_km       Distance from Tx antenna to its horizon (km), see Note 1
     /// @param d_horizon_r_km       Distance from Rx antenna to its horizon (km), see Note 1
     /// @param p_percent            Percentage of time not exceeded (%), 0<p<=50
     /// @return Attenuation (dB)
-    double multipathFocusingCorrection(const double& d_horizon_t_km, const double& d_horizon_r_km, const double& p_percent);
+    double calcMultipathFocusingCorrection_dB(const double& d_horizon_t_km, const double& d_horizon_r_km, const double& p_percent);
+
+    /// @brief Calculate gaseous attenuation using ITU-R P.676-13 without standard atmospheric parameters
+    /// @param d_los_km                 Line of sight Distance between Tx and Rx antennas
+    /// @param freq_GHz                 Frequency (GHz)
+    /// @param temp_K                   Temperature (K)
+    /// @param dryPressure_hPa          Dry air pressure (hPa)
+    /// @param waterVaporDensity_g_m3   Water Vapor Density (g/m3)
+    /// @return gas attenuation (dB)
+    double calcGasAtten_dB(const double& d_los_km, const double& freq_GHz, const double& temp_K, 
+                                const double& dryPressure_hPa, const double& waterVaporDensity_g_m3);
 
 }//end namespace BasicProp
 

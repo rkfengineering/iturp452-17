@@ -18,14 +18,14 @@ namespace PathProfile{
 
     /// @brief          A point along the profile path
     /// @param d_km     Distance (km)
-    /// @param h_masl   Height above sea level (m)
+    /// @param h_asl_m  Height above sea level (m)
     /// @param zone     Zone type (if specified)
     struct ProfilePoint{
         ProfilePoint();
-        ProfilePoint(double distance_km, double height_masl);
-        ProfilePoint(double distance_km, double height_masl, ZoneType zonetype);
+        ProfilePoint(double distance_km, double height_asl_m);
+        ProfilePoint(double distance_km, double height_asl_m, ZoneType zonetype);
         double d_km;
-        double h_masl;
+        double h_asl_m;
         ZoneType zone;
     };
 
@@ -38,13 +38,13 @@ namespace PathProfile{
 
         /// @brief Get the fraction of the total path that has the sea zone type
         /// @return Fraction of the path over sea (omega in P452-17)
-        double getFracOverSea() const;
+        double calcFracOverSea() const;
 
         /// @brief Get the time percentage for which refractive index lapse-rates exceeding 100 N-units/km 
         /// can be expected in the first 100m of the lower atmosphere
         /// @param centerLatitude_deg The latitude (deg) of the path center point
         /// @return Time percentage beta0 (%)
-        double getBeta0(double centerLatitude_deg) const;
+        double calcTimePercentBeta0(double centerLatitude_deg) const;
     };
 }
 #endif /* PATH_PROFILE_H */

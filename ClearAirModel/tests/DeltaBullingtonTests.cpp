@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
-#include "DiffractionLoss.h"
-#include "EffectiveEarth.h"
+#include "ClearAirModel/DiffractionLoss.h"
+#include "ClearAirModel/EffectiveEarth.h"
 #include <filesystem>
 
 //Validation data from ITU validation spreadsheet titled "delB_valid_temp.xlsx", page "outputs"
@@ -8,14 +8,15 @@
 //https://www.itu.int/en/ITU-R/study-groups/rsg3/ionotropospheric/Validation%20examples%20for%20the%20delta%20Bullington%20diffraction%20prediction%20method.docx
 
 //If there's a way to use relative paths that would be nice. The paths from the validation data have been isolated as separate
-//csv files and put in a subdirectory in the tests folder
-const std::filesystem::path testPathFileDir("/home/ayeh/itu/ituModels/iturp452/ClearAirModel/tests/test_paths");
+//csv files and put in a subdirectory in the tests folder. see cmake source dir thing (use a second one)
 
 namespace {
+    const std::filesystem::path testPathFileDir("/home/ayeh/itu/ituModels/iturp452/ClearAirModel/tests/test_paths");
+
 	// Use when expected an exact match
 	double constexpr TOLERANCE = 1.0e-6;
     //assumption for validation data
-    double constexpr ae = 8500; //km
+    double constexpr K_EFF_EARTH_RADIUS_KM = 8500;
 }
 
 //TODO move this stuff to a test case set up class
@@ -64,10 +65,10 @@ TEST(EffectiveEarthTests, EffectiveEarthTests_diffractionModelHeights){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //hts,hrs needs to be in m asl, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::smoothEarthHeights_diffractionModel(
+        const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_m(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
-        const double HTS_AMSL = HTS_LIST[pathInd]+p.front().h_masl;
-        const double HRS_AMSL = HRS_LIST[pathInd]+p.back().h_masl;
+        const double HTS_AMSL = HTS_LIST[pathInd]+p.front().h_asl_m;
+        const double HRS_AMSL = HRS_LIST[pathInd]+p.back().h_asl_m;
         //Equation 38 to calculate modified antenna heights
         EXPECT_NEAR(EXPECTED_HTSP[pathInd],HTS_AMSL-EFF_HEIGHT.tx_val,TOLERANCE);
         EXPECT_NEAR(EXPECTED_HRSP[pathInd],HRS_AMSL-EFF_HEIGHT.rx_val,TOLERANCE);
@@ -108,10 +109,11 @@ TEST(DiffractionLossTests, DiffractionLoss_bullingtonTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); ++pathInd) {
         //hts,hrs needs to be in m asl, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const double LBA = DiffractionLoss::bullLoss(p,
-            HTS_LIST[pathInd]+p.front().h_masl,
-            HRS_LIST[pathInd]+p.back().h_masl,
-            ae, FREQ_MHZ_LIST[pathInd]/1000.0);
+        const double LBA = DiffractionLoss::calcBullingtonLoss_dB(p,
+            HTS_LIST[pathInd]+p.front().h_asl_m,
+            HRS_LIST[pathInd]+p.back().h_asl_m,
+            K_EFF_EARTH_RADIUS_KM, 
+            FREQ_MHZ_LIST[pathInd]/1000.0);
 
         //suggested tolerance 0.1 dB from Notes page of spreadsheet. 
         //Validation data uses 3e8 for speed of light, model uses 2.998e8
@@ -160,13 +162,14 @@ TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthFTTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
+        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_m(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         
-        const double FT = DiffractionLoss::se_first_term(p.back().d_km-p.front().d_km, 
-            HTS_LIST[pathInd]+p.front().h_masl-height_eff_m.tx_val, //effective height relative to ground
-            HRS_LIST[pathInd]+p.back().h_masl-height_eff_m.rx_val,
-            ae, FREQ_MHZ_LIST[pathInd]/1000.0,
+        const double FT = DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_dB(p.back().d_km-p.front().d_km, 
+            HTS_LIST[pathInd]+p.front().h_asl_m-height_eff_m.tx_val, //effective height relative to ground
+            HRS_LIST[pathInd]+p.back().h_asl_m-height_eff_m.rx_val,
+            K_EFF_EARTH_RADIUS_KM, 
+            FREQ_MHZ_LIST[pathInd]/1000.0,
             0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
         const double EXPECTED_FT = -EXPECTED_FX[pathInd] - EXPECTED_GY1[pathInd] - EXPECTED_GY2[pathInd];
 
@@ -210,13 +213,14 @@ TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
+        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_m(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         
-        const double LSPH = DiffractionLoss::se_diffLoss(p.back().d_km-p.front().d_km, 
-            HTS_LIST[pathInd]+p.front().h_masl-height_eff_m.tx_val, //effective height relative to ground
-            HRS_LIST[pathInd]+p.back().h_masl-height_eff_m.rx_val,
-            ae, FREQ_MHZ_LIST[pathInd]/1000.0,
+        const double LSPH = DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(p.back().d_km-p.front().d_km, 
+            HTS_LIST[pathInd]+p.front().h_asl_m-height_eff_m.tx_val, //effective height relative to ground
+            HRS_LIST[pathInd]+p.back().h_asl_m-height_eff_m.rx_val,
+            K_EFF_EARTH_RADIUS_KM, 
+            FREQ_MHZ_LIST[pathInd]/1000.0,
             0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
 
         //suggested tolerance 0.1 dB from Notes page of spreadsheet. 
@@ -259,16 +263,17 @@ TEST(DiffractionLossTests, DiffractionLoss_deltaBullingtonTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = PROFILE_LIST[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::smoothEarthHeights_diffractionModel(
+        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_m(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         
-        const double LOSS_VAL = DiffractionLoss::delta_bullington(
+        const double LOSS_VAL = DiffractionLoss::calcDeltaBullingtonLoss_dB(
             p, 
-            HTS_LIST[pathInd]+p.front().h_masl,
-            HRS_LIST[pathInd]+p.back().h_masl,
+            HTS_LIST[pathInd]+p.front().h_asl_m,
+            HRS_LIST[pathInd]+p.back().h_asl_m,
             height_eff_m.tx_val,
             height_eff_m.rx_val,
-            ae, FREQ_MHZ_LIST[pathInd]/1000.0,
+            K_EFF_EARTH_RADIUS_KM, 
+            FREQ_MHZ_LIST[pathInd]/1000.0,
             0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
 
         //suggested tolerance 0.1 dB from Notes page of spreadsheet. 

@@ -1,4 +1,4 @@
-#include "PathProfile.h"
+#include "ClearAirModel/PathProfile.h"
 #include <fstream>
 #include <sstream>
 #include <cmath>
@@ -6,11 +6,11 @@
 //constructors
 PathProfile::ProfilePoint::ProfilePoint(){
 }
-PathProfile::ProfilePoint::ProfilePoint(double distance_km, double height_masl):
-    d_km{distance_km}, h_masl{height_masl}{
+PathProfile::ProfilePoint::ProfilePoint(double distance_km, double height_asl_m):
+    d_km{distance_km}, h_asl_m{height_asl_m}{
 }
-PathProfile::ProfilePoint::ProfilePoint(double distance_km, double height_masl, ZoneType zonetype):
-    d_km{distance_km}, h_masl{height_masl}, zone{zonetype}{
+PathProfile::ProfilePoint::ProfilePoint(double distance_km, double height_asl_m, ZoneType zonetype):
+    d_km{distance_km}, h_asl_m{height_asl_m}, zone{zonetype}{
 }
 
 //Default Constructor
@@ -45,7 +45,7 @@ PathProfile::Path::Path(std::string csvPath){
             }
             //row 2 is the height value (m)
             else if(i==1){
-                point.h_masl = std::stod(val);
+                point.h_asl_m = std::stod(val);
             }
             //Row 3 is a label of the zone type, can be skipped
             //Row 4 is an integer representing zone type
@@ -57,7 +57,7 @@ PathProfile::Path::Path(std::string csvPath){
     }
 }
 
-double PathProfile::Path::getFracOverSea() const{
+double PathProfile::Path::calcFracOverSea() const{
     double sea_dist = 0;
     PathProfile::ProfilePoint lastPoint = *cbegin();
     for(auto cit = cbegin()+1; cit<cend(); ++cit){
@@ -76,7 +76,7 @@ double PathProfile::Path::getFracOverSea() const{
 }
 
 //WARNING this function only works if the zone types are populated correctly (not checked)
-double PathProfile::Path::getBeta0(double centerLatitude_deg) const{
+double PathProfile::Path::calcTimePercentBeta0(double centerLatitude_deg) const{
     //get longest contiguous land and inland segments 
 
     double longestLand=0;

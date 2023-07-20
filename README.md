@@ -18,6 +18,8 @@ Basic Transmission loss has been tested
 * including gas attenuation and multipath focusing corrections
 * WARNING the official validation data uses the gas models with frequencies below 1 GHz
 
+TODO - check naming to clarify between meters above sea level and meters above mean sea level. some variables might be mixed up
+
 ## Introduction
 This library implements most of the algorithms found in ITU-P. 452-17. A few of the algorithms have not been implemented yet and are currently being worked on (as of July 14th, 2023). 
 * Implementation is based on: [ITU P.452-17 Recommendation](https://www.itu.int/rec/R-REC-P.452-17-202109-I/en)

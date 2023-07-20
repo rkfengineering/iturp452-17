@@ -1,10 +1,10 @@
-#include "ClutterLoss.h"
+#include "ClearAirModel/ClutterLoss.h"
 #include <cmath>
 #include <algorithm>
 
 //WARNING ignoring site shielding for now
 
-ClutterLoss::ClutterLossResults ClutterLoss::clutterLoss_corr(const double& freq_GHz, 
+ClutterLoss::ClutterLossResults ClutterLoss::calcClutterLoss_dB(const double& freq_GHz, 
             const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m, 
             const double& tx_clutter_height_m, const double& rx_clutter_height_m, const double& tx_clutter_dist_km,
             const double& rx_clutter_dist_km){
@@ -63,7 +63,7 @@ ClutterLoss::ClutterLossResults ClutterLoss::clutterLoss_corr(const double& freq
     PathProfile::ProfilePoint point;
     for(auto cit = path.cbegin()+index1; cit<path.cbegin()+index2; ++cit){
         point = *cit;
-        modified_path.push_back(PathProfile::ProfilePoint(point.d_km-offset, point.h_masl, point.zone));
+        modified_path.push_back(PathProfile::ProfilePoint(point.d_km-offset, point.h_asl_m, point.zone));
     }
 
     ClutterLossResults results;

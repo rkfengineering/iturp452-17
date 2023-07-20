@@ -1,10 +1,10 @@
 #include "gtest/gtest.h"
-#include "PathProfile.h"
-#include "InvCumNorm.h"
-#include "EffectiveEarth.h"
-#include "BasicProp.h"
-#include "PowerUnitConversionHelpers.h"
-#include "DataStructures.h"
+#include "ClearAirModel/PathProfile.h"
+#include "ClearAirModel/CalculationHelpers.h"
+#include "ClearAirModel/EffectiveEarth.h"
+#include "ClearAirModel/BasicProp.h"
+#include "Common/PowerUnitConversionHelpers.h"
+#include "Common/DataStructures.h"
 #include <filesystem>
 
 //Example Profile Path from ITU validation spreadsheet titled "delB_valid_temp.xlsx", pages "Path 1" to "Path 4"
@@ -47,10 +47,10 @@ TEST(ProfilePathTests, ProfilePath_loadProfileTest){
 	for (uint16_t profileInd = 0; profileInd < PROFILE_LIST.size(); profileInd++) {
 		const PathProfile::Path PROFILE(testPathFileDir/std::filesystem::path(PROFILE_LIST[profileInd]));
 		EXPECT_NEAR(EXPECTED_FIRST_D_LIST[profileInd], PROFILE.front().d_km, TOLERANCE);
-		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_masl, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_asl_m, TOLERANCE);
 		EXPECT_EQ(EXPECTED_FIRST_ZONE_LIST[profileInd], static_cast<int>(PROFILE.front().zone));
 		EXPECT_NEAR(EXPECTED_LAST_D_LIST[profileInd], PROFILE.back().d_km, TOLERANCE);
-		EXPECT_NEAR(EXPECTED_LAST_H_LIST[profileInd], PROFILE.back().h_masl, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_LAST_H_LIST[profileInd], PROFILE.back().h_asl_m, TOLERANCE);
 		EXPECT_EQ(EXPECTED_LAST_ZONE_LIST[profileInd], static_cast<int>(PROFILE.back().zone));
 		EXPECT_NEAR(EXPECTED_LENGTH_LIST[profileInd], PROFILE.size(), TOLERANCE);
 	}	
@@ -78,9 +78,9 @@ TEST(ProfilePathTests, ProfilePath_loadDHProfileTest){
 	for (uint16_t profileInd = 0; profileInd < PROFILE_LIST.size(); profileInd++) {
 		const PathProfile::Path PROFILE(testPathFileDir/std::filesystem::path(PROFILE_LIST[profileInd]));
 		EXPECT_NEAR(EXPECTED_FIRST_D_LIST[profileInd], PROFILE.front().d_km, TOLERANCE);
-		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_masl, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_asl_m, TOLERANCE);
 		EXPECT_NEAR(EXPECTED_LAST_D_LIST[profileInd], PROFILE.back().d_km, TOLERANCE);
-		EXPECT_NEAR(EXPECTED_LAST_H_LIST[profileInd], PROFILE.back().h_masl, TOLERANCE);
+		EXPECT_NEAR(EXPECTED_LAST_H_LIST[profileInd], PROFILE.back().h_asl_m, TOLERANCE);
 		EXPECT_NEAR(EXPECTED_LENGTH_LIST[profileInd], PROFILE.size(), TOLERANCE);
 	}	
 }
@@ -98,13 +98,13 @@ TEST(HelpersTests, InvCumNormTest){
 	};
 
 	for (uint16_t ind = 0; ind < INPUTS_LIST.size(); ind++) {
-		const double OUTPUT = inv_cum_norm(INPUTS_LIST[ind]);
+		const double OUTPUT = CalculationHelpers::inv_cum_norm(INPUTS_LIST[ind]);
 		//Maximum error of 0.00054 from Attachment 3 to Annex 1 ITU-R P.452-17
 		EXPECT_NEAR(EXPECTED_RESULTS_LIST[ind], OUTPUT, 0.00054);
 	}
 	
 	//use 1e-6 for all probability below 1e-6
-	EXPECT_NEAR(inv_cum_norm(1e-7), inv_cum_norm(1e-6), TOLERANCE);
+	EXPECT_NEAR(CalculationHelpers::inv_cum_norm(1e-7), CalculationHelpers::inv_cum_norm(1e-6), TOLERANCE);
 }
 
 //quick logic test. make sure values make sense (the path isn't extremely jagged)
@@ -114,7 +114,7 @@ TEST(EffectiveEarthTests, EffectiveEarthTests_smoothEarthAMSLHeights){
 	const double EXPECTED_END = 357.3;
 
 	const PathProfile::Path p(testPathFileDir/std::filesystem::path("dbull_path1.csv"));
-	const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::smoothEarthHeights_AMSL(p);
+	const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::calcSmoothEarthTxRxHeights_helper_amsl_m(p);
 
 	//high tolerance since the values were read off a graph
 	EXPECT_NEAR(EXPECTED_START,EFF_HEIGHT.tx_val,0.5);
@@ -123,14 +123,14 @@ TEST(EffectiveEarthTests, EffectiveEarthTests_smoothEarthAMSLHeights){
 
 //Compare free space path loss value against other existing implementation
 //The constant used in Eq 8 uses less sig figs
-TEST(BasicPropTests, BasicPropTests_freeSpacePathLoss){
+TEST(BasicPropTests, BasicPropTests_calcFreeSpacePathLoss_dB){
 	const double INPUT_FREQ_GHz = 2;
 	const double INPUT_DIST_KM = 500;
 
 	const double EXPECTED_LOSS = PowerUnitConversionHelpers::convertWattsToDb(
 		DataStructures::PATH_LOSS_SCALE_FACTOR * INPUT_DIST_KM * INPUT_FREQ_GHz) * 2.0;
 
-	const double VAL_LOSS =  BasicProp::freeSpacePathLoss(INPUT_DIST_KM,INPUT_FREQ_GHz);
+	const double VAL_LOSS =  BasicProp::calcFreeSpacePathLoss_dB(INPUT_DIST_KM,INPUT_FREQ_GHz);
 
 	//Eq 8 Constant used has resolution up to 0.1 dB
 	EXPECT_NEAR(EXPECTED_LOSS,VAL_LOSS,0.05);
