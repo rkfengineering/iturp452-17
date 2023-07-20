@@ -199,7 +199,7 @@ TEST(DiffractionLossTests, DiffractionLoss_sphericalEarthDiffLossTest){
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
-        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_m(p,HTG,HRG);
+        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(p,HTG,HRG);
         
         const double LDSPH = DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(
             p.back().d_km, 
@@ -261,7 +261,7 @@ TEST(DiffractionLossTests, DiffractionLoss_calcDiffractionLoss_dBTest){
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
-        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_m(p,HTG,HRG);
+        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(p,HTG,HRG);
         
         const auto LOSS_VAL = DiffractionLoss::calcDiffractionLoss_dB(
             p, 

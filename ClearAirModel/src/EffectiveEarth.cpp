@@ -9,7 +9,8 @@ double EffectiveEarth::calcMedianEffectiveRadius_km(const double& delta_N){
     return 6371.0 * k50; //Eq 6a
 }
 
-EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_helper_amsl_m(const PathProfile::Path& path){
+//Least Squares linear approximation of the actual path
+EffectiveEarth::TxRxPair EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(const PathProfile::Path& path){
 
     const double d_tot = path.back().d_km; //assume distances start at 0
     //Section 5.1.6.2
@@ -18,20 +19,24 @@ EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_helper_amsl_
     PathProfile::ProfilePoint prevPoint = path.front();
     for(uint32_t i = 1; i<path.size(); ++i){ //start at second point
         const PathProfile::ProfilePoint point = path.at(i);
-        v1+=(point.d_km-prevPoint.d_km)*(point.h_asl_m+prevPoint.h_asl_m);//Eq 161
+        //Equation 161
+        v1+=(point.d_km-prevPoint.d_km)*(point.h_asl_m+prevPoint.h_asl_m);
+        //Equation 162
         v2+=(point.d_km-prevPoint.d_km)*(point.h_asl_m*(2*point.d_km+prevPoint.d_km)+prevPoint.h_asl_m*(point.d_km+2*prevPoint.d_km)); //Eq 162
         prevPoint = point;
     }
     
     EffectiveEarth::TxRxPair height_results = EffectiveEarth::TxRxPair();
 
-    height_results.tx_val = (2.0*v1*d_tot-v2)/(d_tot*d_tot); //Eq 163
-    height_results.rx_val = (v2-v1*d_tot)/(d_tot*d_tot);   //Eq 164
+    //Equation 163 Tx least squares model height 
+    height_results.tx_val = (2.0*v1*d_tot-v2)/(d_tot*d_tot); 
+    //Equation 164 Tx least squares model height 
+    height_results.rx_val = (v2-v1*d_tot)/(d_tot*d_tot);   
 
     return height_results;
 }
 
-EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_m(const PathProfile::Path& path, 
+EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(const PathProfile::Path& path, 
         const double& height_tx_m, const double& height_rx_m){
 
     const double d_tot = path.back().d_km; //assume distances start at 0
@@ -46,7 +51,7 @@ EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionM
     double alpha_obs_t_max = std::numeric_limits<double>::lowest();
     double alpha_obs_r_max = std::numeric_limits<double>::lowest();
 
-    //get max values
+    //get max values for intermediate obstruction
     double height_val,delta_d;
     PathProfile::ProfilePoint point;
     for (auto cit = path.begin()+1; cit<path.end()-1; ++cit){
@@ -58,11 +63,13 @@ EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionM
         alpha_obs_r_max = std::max(alpha_obs_r_max,height_val/delta_d);      //Eq 165c
     }
 
-    const auto height_se_m_amsl_pair = EffectiveEarth::calcSmoothEarthTxRxHeights_helper_amsl_m(path);
+    //Tx,Rx heights from a least squares smooth path
+    const auto height_se_m_amsl_pair = EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(path);
 
     double hstp = height_se_m_amsl_pair.tx_val; //Eq 166a
     double hsrp = height_se_m_amsl_pair.rx_val; //Eq 166b
     
+    //Modify heights to compensate for obstructions
     if(height_obs_max>0){
         const double v1 = alpha_obs_t_max+alpha_obs_r_max;
         const double gt = alpha_obs_t_max/v1; //Eq 166e
@@ -73,6 +80,8 @@ EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionM
     }
     
     EffectiveEarth::TxRxPair height_results = EffectiveEarth::TxRxPair();
+
+    //Limit effective antenna heights to be above actual terrain ground height
     height_results.tx_val = std::min(path.front().h_asl_m, hstp); //Eq 167 a,b
     height_results.rx_val = std::min(path.back().h_asl_m, hsrp); //Eq 167 c,d
     return height_results;

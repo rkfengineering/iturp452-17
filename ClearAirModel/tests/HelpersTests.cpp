@@ -12,14 +12,14 @@
 
 //Unit Tests for smaller functions (not directly using ITU Validation data)
 
-const std::filesystem::path testPathFileDir("/home/ayeh/itu/ituModels/iturp452/ClearAirModel/tests/test_paths");
-
 namespace {
 	// Use when expected an exact match
 	double constexpr TOLERANCE = 1.0e-6;
+	const std::filesystem::path clearAirDataRelPath = "tests/test_paths";
+	const std::filesystem::path clearAirDataFullPath = CMAKE_CLEARAIR_SRC_DIR / clearAirDataRelPath;
 }
 
-TEST(ProfilePathTests, ProfilePath_loadProfileTest){
+TEST(ProfilePathTests, loadProfileTest){
 	const std::vector<std::string> PROFILE_LIST = {
 		"dbull_path1.csv", "test_profile_mixed_109km.csv"
 	};
@@ -45,42 +45,13 @@ TEST(ProfilePathTests, ProfilePath_loadProfileTest){
 		1663,110
 	};
 	for (uint16_t profileInd = 0; profileInd < PROFILE_LIST.size(); profileInd++) {
-		const PathProfile::Path PROFILE(testPathFileDir/std::filesystem::path(PROFILE_LIST[profileInd]));
+		const PathProfile::Path PROFILE(clearAirDataFullPath/std::filesystem::path(PROFILE_LIST[profileInd]));
 		EXPECT_NEAR(EXPECTED_FIRST_D_LIST[profileInd], PROFILE.front().d_km, TOLERANCE);
 		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_asl_m, TOLERANCE);
 		EXPECT_EQ(EXPECTED_FIRST_ZONE_LIST[profileInd], static_cast<int>(PROFILE.front().zone));
 		EXPECT_NEAR(EXPECTED_LAST_D_LIST[profileInd], PROFILE.back().d_km, TOLERANCE);
 		EXPECT_NEAR(EXPECTED_LAST_H_LIST[profileInd], PROFILE.back().h_asl_m, TOLERANCE);
 		EXPECT_EQ(EXPECTED_LAST_ZONE_LIST[profileInd], static_cast<int>(PROFILE.back().zone));
-		EXPECT_NEAR(EXPECTED_LENGTH_LIST[profileInd], PROFILE.size(), TOLERANCE);
-	}	
-}
-
-TEST(ProfilePathTests, ProfilePath_loadDHProfileTest){
-	const std::vector<std::string> PROFILE_LIST = {
-		"dbull_path1.csv"
-	};
-	const std::vector<double> EXPECTED_FIRST_D_LIST = {
-		0
-	};
-	const std::vector<double> EXPECTED_FIRST_H_LIST = {
-		800
-	};
-	const std::vector<double> EXPECTED_LAST_D_LIST = {
-		83.07993853
-	};
-	const std::vector<double> EXPECTED_LAST_H_LIST = {
-		302
-	};
-	const std::vector<double> EXPECTED_LENGTH_LIST = {
-		1663
-	};
-	for (uint16_t profileInd = 0; profileInd < PROFILE_LIST.size(); profileInd++) {
-		const PathProfile::Path PROFILE(testPathFileDir/std::filesystem::path(PROFILE_LIST[profileInd]));
-		EXPECT_NEAR(EXPECTED_FIRST_D_LIST[profileInd], PROFILE.front().d_km, TOLERANCE);
-		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_asl_m, TOLERANCE);
-		EXPECT_NEAR(EXPECTED_LAST_D_LIST[profileInd], PROFILE.back().d_km, TOLERANCE);
-		EXPECT_NEAR(EXPECTED_LAST_H_LIST[profileInd], PROFILE.back().h_asl_m, TOLERANCE);
 		EXPECT_NEAR(EXPECTED_LENGTH_LIST[profileInd], PROFILE.size(), TOLERANCE);
 	}	
 }
@@ -107,14 +78,18 @@ TEST(HelpersTests, InvCumNormTest){
 	EXPECT_NEAR(CalculationHelpers::inv_cum_norm(1e-7), CalculationHelpers::inv_cum_norm(1e-6), TOLERANCE);
 }
 
-//quick logic test. make sure values make sense (the path isn't extremely jagged)
-//Endpoints estimated from Excel Trendline
-TEST(EffectiveEarthTests, EffectiveEarthTests_smoothEarthAMSLHeights){
+//This helper function returns the endpoints of a least squares smooth earth approximation
+//This is used in calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m to calculate the effective heights 
+//for the smooth earth Bullington Loss after compensating for terrain obstructions and 
+//setting a lower yheight limit at the actual terrain height 
+
+//Endpoints estimated from Excel Linear Trendline
+TEST(EffectiveEarthTests, calcLeastSquaresSmoothEarthHeightsHelper){
 	const double EXPECTED_START = 635.2;
 	const double EXPECTED_END = 357.3;
 
-	const PathProfile::Path p(testPathFileDir/std::filesystem::path("dbull_path1.csv"));
-	const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::calcSmoothEarthTxRxHeights_helper_amsl_m(p);
+	const PathProfile::Path p(clearAirDataFullPath/std::filesystem::path("dbull_path1.csv"));
+	const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(p);
 
 	//high tolerance since the values were read off a graph
 	EXPECT_NEAR(EXPECTED_START,EFF_HEIGHT.tx_val,0.5);
@@ -123,7 +98,7 @@ TEST(EffectiveEarthTests, EffectiveEarthTests_smoothEarthAMSLHeights){
 
 //Compare free space path loss value against other existing implementation
 //The constant used in Eq 8 uses less sig figs
-TEST(BasicPropTests, BasicPropTests_calcFreeSpacePathLoss_dB){
+TEST(BasicPropTests, calcFreeSpacePathLoss){
 	const double INPUT_FREQ_GHz = 2;
 	const double INPUT_DIST_KM = 500;
 

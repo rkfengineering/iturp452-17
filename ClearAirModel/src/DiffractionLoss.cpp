@@ -7,6 +7,41 @@
 #include <cmath>
 #include "Common/PhysicalConstants.h"
 
+double DiffractionLoss::calcDeltaBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m,
+        const double& eff_height_itx_asl_m, const double& eff_height_irx_asl_m, const double& eff_radius_p_km, const double& freq_GHz,
+        const double& frac_over_sea, const Enumerations::PolarizationType& pol){
+
+    //Bullington Loss for the Actual Terrain
+    const double Lbulla = DiffractionLoss::calcBullingtonLoss_dB(path, height_tx_asl_m, height_rx_asl_m, eff_radius_p_km, freq_GHz);
+    
+    //modified heights and zero profile
+    PathProfile::Path zeroHeightPath;
+    for (auto point : path){
+        zeroHeightPath.push_back(PathProfile::ProfilePoint(point.d_km, 0.0));
+    }
+    const double mod_height_tx_asl_m= height_tx_asl_m- eff_height_itx_asl_m;
+    const double mod_height_rx_asl_m= height_rx_asl_m- eff_height_irx_asl_m;
+    //Bullington Loss for an equivalent Smooth Earth Path
+    const double Lbulls = DiffractionLoss::calcBullingtonLoss_dB(zeroHeightPath, mod_height_tx_asl_m, mod_height_rx_asl_m, eff_radius_p_km, freq_GHz);
+
+    //Spherical Earth Diffraction Loss
+    const double d_tot = path.back().d_km - path.front().d_km;
+    const double Ldsph = DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(d_tot, mod_height_tx_asl_m, mod_height_rx_asl_m, 
+                                                eff_radius_p_km, freq_GHz,frac_over_sea,pol);
+
+    //Eq 40 Delta Bullington Diffraction Loss (dB)
+    //This model tries to account for spherical earth diffraction and Bullington diffraction losses in the same model
+
+    //If Spherical Earth Diffraction Loss is greater than the bullington loss for the equivalent smooth earth path, 
+    //add the difference to the actual bullington loss. 
+
+    //Note: If the path is smooth, the bullington losses cancel and the spherical loss term dominates this expression
+    //For more information on the Delta Bullington model, see 
+    //https://erdc-library.erdc.dren.mil/jspui/bitstream/11681/42780/1/ERDC-CRREL%20TR-22-1.pdf
+
+    return Lbulla + std::max(Ldsph - Lbulls, 0.0);
+}
+
 double DiffractionLoss::calcBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m,
         const double& height_rx_asl_m, const double& eff_radius_p_km, const double& freq_GHz){
     
@@ -87,31 +122,6 @@ double DiffractionLoss::calcBullingtonLoss_dB(const PathProfile::Path& path, con
     return loss_knifeEdge_dB + (1-std::exp(-loss_knifeEdge_dB/6.0))*(10+0.02*d_tot); 
 }
 
-double DiffractionLoss::calcDeltaBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m,
-        const double& eff_height_itx_asl_m, const double& eff_height_irx_asl_m, const double& eff_radius_p_km, const double& freq_GHz,
-        const double& frac_over_sea, const Enumerations::PolarizationType& pol){
-
-    //Actual heights and profile
-    const double Lbulla = DiffractionLoss::calcBullingtonLoss_dB(path, height_tx_asl_m, height_rx_asl_m, eff_radius_p_km, freq_GHz);
-    
-    //modified heights and zero profile
-    PathProfile::Path zeroHeightPath;
-    for (auto point : path){
-        zeroHeightPath.push_back(PathProfile::ProfilePoint(point.d_km, 0.0));
-    }
-    const double mod_height_tx_asl_m= height_tx_asl_m- eff_height_itx_asl_m;
-    const double mod_height_rx_asl_m= height_rx_asl_m- eff_height_irx_asl_m;
-    const double Lbulls = DiffractionLoss::calcBullingtonLoss_dB(zeroHeightPath, mod_height_tx_asl_m, mod_height_rx_asl_m, eff_radius_p_km, freq_GHz);
-
-    //Spherical Earth Diffraction Loss
-    const double d_tot = path.back().d_km - path.front().d_km;
-    const double Ldsph = DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(d_tot, mod_height_tx_asl_m, mod_height_rx_asl_m, 
-                                                eff_radius_p_km, freq_GHz,frac_over_sea,pol);
-
-    //Eq 40 Delta Bullington Diffraction Loss (dB)
-    return Lbulla + std::max(Ldsph - Lbulls, 0.0);
-}
-
 DiffractionLoss::DiffResults DiffractionLoss::calcDiffractionLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m, 
         const double& height_rx_asl_m, const double& eff_height_itx_asl_m, const double& eff_height_irx_asl_m, 
         const double& freq_GHz, const double& frac_over_sea, const double& p_percent, const double& b0, 
@@ -131,7 +141,7 @@ DiffractionLoss::DiffResults DiffractionLoss::calcDiffractionLoss_dB(const PathP
     else if(p_percent<50){
         //Delta Bullington Loss not exceeded for b0% time
         const double Ldb = DiffractionLoss::calcDeltaBullingtonLoss_dB(path,height_tx_asl_m,height_rx_asl_m,eff_height_itx_asl_m,
-                eff_height_irx_asl_m,EffectiveEarth::eff_radius_bpercentExceeded_km,freq_GHz,frac_over_sea,pol);
+                eff_height_irx_asl_m,EffectiveEarth::k_eff_radius_bpercentExceeded_km,freq_GHz,frac_over_sea,pol);
 
         //interpolation factor 
         double Fi;
@@ -239,7 +249,7 @@ double DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_helper_dB(const 
         Fx = -20*std::log10(X) - 5.6488*std::pow(X,1.425);
     }
 
-    //Normalized Height Function, Eq 35
+    //Equation 35 Normalized Height Function
     double GYt, GYr;
     if(Bt>2){
         GYt = 17.6*std::sqrt(Bt-1.1)-5*std::log10(Bt-1.1)-8;

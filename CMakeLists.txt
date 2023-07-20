@@ -41,6 +41,7 @@ find_package(GTest REQUIRED)
 find_package(GSL REQUIRED)
 
 add_compile_definitions(CMAKE_ROOT_SRC_DIR="${CMAKE_SOURCE_DIR}/ituModels/itu_linux")
+add_compile_definitions(CMAKE_CLEARAIR_SRC_DIR="${CMAKE_SOURCE_DIR}/ClearAirModel")
 
 enable_testing()
 
