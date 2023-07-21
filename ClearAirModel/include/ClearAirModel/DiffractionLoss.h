@@ -19,10 +19,10 @@ namespace DiffractionLoss {
     //They are supposed to be brackets    
     /// @brief Bullington part of the diffraction loss from Section 4.2.1
     /// @param path             Contains distance (km) and height (asl_m) profile points
-    /// @param height_tx_asl_m   Tx Antenna height (asl_m)
-    /// @param height_rx_asl_m   Rx Antenna height (asl_m)
+    /// @param height_tx_asl_m  Tx Antenna height (asl_m)
+    /// @param height_rx_asl_m  Rx Antenna height (asl_m)
     /// @param eff_radius_p_km  Effective Earth radius for time percentage (km)
-    /// @param freq_GHz          Frequency (GHz)
+    /// @param freq_GHz         Frequency (GHz)
     /// @return Loss from Bullington component (dB)
     double calcBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m,
             const double& height_rx_asl_m, const double& eff_radius_p_km, const double& freq_GHz);
@@ -49,12 +49,12 @@ namespace DiffractionLoss {
     /// @param frac_over_sea           Fraction of the path over sea
     /// @param pol                     Polarization type (horizontal or vertical)
     /// @param p_percent               Percentage of time not exceeded (%), 0<p<=50
-    /// @param b0                      Time percentage that the refractivity gradient (DELTA-N) exceeds 100 N-units/km in the first 100 m of the lower atmosphere (%)
+    /// @param b0_percent                      Time percentage that the refractivity gradient (DELTA-N) exceeds 100 N-units/km in the first 100 m of the lower atmosphere (%)
     /// @param DN                      Average radio-refractive index lapse-rate through the lowest 1km of the atmosphere (positive value) 
     /// @param pol                     Polarization type (horizontal or vertical)
     /// @return 
     DiffResults calcDiffractionLoss_dB(const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m,
-            const double& freq_GHz, const double& frac_over_sea, const double& p_percent, const double&b0, 
+            const double& freq_GHz, const double& frac_over_sea, const double& p_percent, const double&b0_percent, 
             const double& DN, const Enumerations::PolarizationType& pol);
 
     /// @brief Spherical Earth Diffraction Loss exceeded for p% time from Section 4.2.2
@@ -62,7 +62,7 @@ namespace DiffractionLoss {
     /// @param eff_height_itx_m      Effective height of interfering antenna (m)
     /// @param eff_height_irx_m      Effective height of interfered-with antenna (m)
     /// @param eff_radius_p_km       Effective Earth radius for time percentage (km)
-    /// @param freq_GHz               Frequency (GHz)
+    /// @param freq_GHz              Frequency (GHz)
     /// @param frac_over_sea         Fraction of path over sea
     /// @param pol                   Polarization Type (Horizontal or Vertical)
     /// @return Spherical-Earth diffraction loss (dB)
@@ -78,7 +78,7 @@ namespace DiffractionLoss {
     /// @param eff_height_itx_m      Effective height of interfering antenna (m)
     /// @param eff_height_irx_m      Effective height of interfered-with antenna (m)
     /// @param eff_radius_km         Effective Earth radius (km)
-    /// @param freq_GHz               Frequency (GHz)
+    /// @param freq_GHz              Frequency (GHz)
     /// @param frac_over_sea         Fraction of path over sea
     /// @param pol                   Polarization Type (Horizontal or Vertical)
     /// @return First Term part of Spherical Earth Diffraction Loss (dB)
@@ -93,7 +93,7 @@ namespace DiffractionLoss {
     /// @param eff_height_itx_m   Effective height of interfering antenna (m)
     /// @param eff_height_irx_m   Effective height of interfered-with antenna (m)
     /// @param eff_radius_km      Effective Earth radius (km)
-    /// @param freq_GHz            Frequency (GHz)
+    /// @param freq_GHz           Frequency (GHz)
     /// @param pol                Polarization Type (Horizontal or Vertical)
     /// @return First Term spherical diffraction loss over a single zone type (dB)
     double calcSphericalEarthDiffraction_firstTerm_helper_dB(const double& eps_r, const double& sigma, const double& distance_gc_km, 

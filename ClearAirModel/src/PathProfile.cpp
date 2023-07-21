@@ -76,7 +76,7 @@ double PathProfile::Path::calcFracOverSea() const{
 }
 
 //WARNING this function only works if the zone types are populated correctly (not checked)
-double PathProfile::Path::calcTimePercentBeta0(double centerLatitude_deg) const{
+double PathProfile::Path::calcTimePercentBeta0(const double& centerLatitude_deg) const{
     //get longest contiguous land and inland segments 
 
     double longestLand=0;
@@ -144,4 +144,37 @@ double PathProfile::Path::calcTimePercentBeta0(double centerLatitude_deg) const{
         //Equation 2
         return 4.17*mu1*mu4;
     }
+}
+
+//TODO refactor code. calc beta0 needs inland and non-sea
+// ducting model needs inland only
+double PathProfile::Path::calcLongestContiguousInlandDistance_km() const{
+    //get longest contiguous land and inland segments 
+
+    double longestInland=0;
+    double currentInland=0;
+    
+    PathProfile::ProfilePoint lastPoint = *cbegin();
+
+    for(auto cit = cbegin()+1; cit<cend(); ++cit){
+
+        //add full interval (both points are inland type)
+        if(cit->zone==PathProfile::ZoneType::Inland && lastPoint.zone==PathProfile::ZoneType::Inland){
+            currentInland += cit->d_km - lastPoint.d_km;
+        }
+        //or add half interval (transition to or from inland)
+        else if (cit->zone==PathProfile::ZoneType::Inland || lastPoint.zone==PathProfile::ZoneType::Inland){
+            currentInland += (cit->d_km - lastPoint.d_km)/2.0;
+            //reset 
+            if (cit->zone!=PathProfile::ZoneType::Inland){
+                longestInland = std::max(longestInland,currentInland);
+                currentInland = 0;
+            }
+        }
+        lastPoint = *cit;
+    }
+    //max values only update on transition out of zone. 
+    //check if the longest contiguous zone is at the end of the path
+    longestInland = std::max(longestInland,currentInland);
+    return longestInland;
 }

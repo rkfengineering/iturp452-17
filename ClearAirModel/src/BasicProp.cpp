@@ -7,7 +7,7 @@ double BasicProp::calcPathLossWithGasAndMultipath_dB(const double& d_tot_km, con
                         const double& freq_GHz, const double& temp_K, const double& dryPressure_hPa, const double& frac_over_sea,
                         const double& d_horizon_t_km, const double& d_horizon_r_km, const double& p_percent){
     
-    //Equation 8a distance accounting for height differential
+    //Equation 8a distance accounting for height differential (calculated for transhorizon paths too)
     const double d_los_km = std::sqrt(MathHelpers::simpleSquare(d_tot_km)+
                                         MathHelpers::simpleSquare((height_tx_asl_m-height_rx_asl_m)/1000.0));
     //Equation 9a Water Vapor Density

@@ -44,7 +44,9 @@ namespace PathProfile{
         /// can be expected in the first 100m of the lower atmosphere
         /// @param centerLatitude_deg The latitude (deg) of the path center point
         /// @return Time percentage beta0 (%)
-        double calcTimePercentBeta0(double centerLatitude_deg) const;
+        double calcTimePercentBeta0(const double& centerLatitude_deg) const;
+
+        double calcLongestContiguousInlandDistance_km() const;
     };
 }
 #endif /* PATH_PROFILE_H */

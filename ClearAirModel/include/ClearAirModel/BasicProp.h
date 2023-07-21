@@ -39,7 +39,7 @@ namespace BasicProp {
     double calcMultipathFocusingCorrection_dB(const double& d_horizon_t_km, const double& d_horizon_r_km, const double& p_percent);
 
     /// @brief Calculate gaseous attenuation using ITU-R P.676-13 without standard atmospheric parameters
-    /// @param d_los_km                 Line of sight Distance between Tx and Rx antennas
+    /// @param d_los_km                 Line of sight Distance between Tx and Rx antennas (km)
     /// @param freq_GHz                 Frequency (GHz)
     /// @param temp_K                   Temperature (K)
     /// @param dryPressure_hPa          Dry air pressure (hPa)

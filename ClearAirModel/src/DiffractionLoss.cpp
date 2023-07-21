@@ -129,7 +129,7 @@ double DiffractionLoss::calcBullingtonLoss_dB(const PathProfile::Path& path, con
 }
 
 DiffractionLoss::DiffResults DiffractionLoss::calcDiffractionLoss_dB(const PathProfile::Path& path, const double& height_tx_m, 
-        const double& height_rx_m, const double& freq_GHz, const double& frac_over_sea, const double& p_percent, const double& b0, 
+        const double& height_rx_m, const double& freq_GHz, const double& frac_over_sea, const double& p_percent, const double& b0_percent, 
         const double& DN, const Enumerations::PolarizationType& pol){
 
     const double val_calcMedianEffectiveRadius_km = EffectiveEarth::calcMedianEffectiveRadius_km(DN);
@@ -144,14 +144,14 @@ DiffractionLoss::DiffResults DiffractionLoss::calcDiffractionLoss_dB(const PathP
         results.diff_loss_p_dB = diff_loss_p50_dB;
     }
     else if(p_percent<50){
-        //Delta Bullington Loss not exceeded for b0% time
+        //Delta Bullington Loss not exceeded for b0_percent% time
         const double Ldb = DiffractionLoss::calcDeltaBullingtonLoss_dB(path,height_tx_m,height_rx_m,
                 EffectiveEarth::k_eff_radius_bpercentExceeded_km,freq_GHz,frac_over_sea,pol);
 
         //interpolation factor 
         double Fi;
-        if(p_percent>b0){
-            Fi = CalculationHelpers::inv_cum_norm(p_percent/100.0)/CalculationHelpers::inv_cum_norm(b0/100.0); //Eq 41a
+        if(p_percent>b0_percent){
+            Fi = CalculationHelpers::inv_cum_norm(p_percent/100.0)/CalculationHelpers::inv_cum_norm(b0_percent/100.0); //Eq 41a
         }
         else{
             Fi = 1;
