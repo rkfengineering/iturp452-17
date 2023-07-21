@@ -7,9 +7,12 @@
 #include <cmath>
 #include "Common/PhysicalConstants.h"
 
-double DiffractionLoss::calcDeltaBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m,
-        const double& eff_height_itx_asl_m, const double& eff_height_irx_asl_m, const double& eff_radius_p_km, const double& freq_GHz,
-        const double& frac_over_sea, const Enumerations::PolarizationType& pol){
+double DiffractionLoss::calcDeltaBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m,
+        const double& eff_radius_p_km, const double& freq_GHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol){
+
+    //convert heights to above sea level
+    const double height_tx_asl_m = path.front().h_asl_m + height_tx_m;
+    const double height_rx_asl_m = path.back().h_asl_m + height_rx_m;
 
     //Bullington Loss for the Actual Terrain
     const double Lbulla = DiffractionLoss::calcBullingtonLoss_dB(path, height_tx_asl_m, height_rx_asl_m, eff_radius_p_km, freq_GHz);
@@ -19,6 +22,9 @@ double DiffractionLoss::calcDeltaBullingtonLoss_dB(const PathProfile::Path& path
     for (auto point : path){
         zeroHeightPath.push_back(PathProfile::ProfilePoint(point.d_km, 0.0));
     }
+    //effective heights for smooth path
+    const auto [eff_height_itx_asl_m,eff_height_irx_asl_m] = 
+            EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(path, height_tx_m, height_rx_m);
     const double mod_height_tx_asl_m= height_tx_asl_m- eff_height_itx_asl_m;
     const double mod_height_rx_asl_m= height_rx_asl_m- eff_height_irx_asl_m;
     //Bullington Loss for an equivalent Smooth Earth Path
@@ -122,16 +128,15 @@ double DiffractionLoss::calcBullingtonLoss_dB(const PathProfile::Path& path, con
     return loss_knifeEdge_dB + (1-std::exp(-loss_knifeEdge_dB/6.0))*(10+0.02*d_tot); 
 }
 
-DiffractionLoss::DiffResults DiffractionLoss::calcDiffractionLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m, 
-        const double& height_rx_asl_m, const double& eff_height_itx_asl_m, const double& eff_height_irx_asl_m, 
-        const double& freq_GHz, const double& frac_over_sea, const double& p_percent, const double& b0, 
+DiffractionLoss::DiffResults DiffractionLoss::calcDiffractionLoss_dB(const PathProfile::Path& path, const double& height_tx_m, 
+        const double& height_rx_m, const double& freq_GHz, const double& frac_over_sea, const double& p_percent, const double& b0, 
         const double& DN, const Enumerations::PolarizationType& pol){
 
     const double val_calcMedianEffectiveRadius_km = EffectiveEarth::calcMedianEffectiveRadius_km(DN);
     
     //Delta Bullington Loss
-    const double diff_loss_p50_dB = DiffractionLoss::calcDeltaBullingtonLoss_dB(path,height_tx_asl_m,height_rx_asl_m,
-            eff_height_itx_asl_m,eff_height_irx_asl_m,val_calcMedianEffectiveRadius_km,freq_GHz,frac_over_sea,pol);
+    const double diff_loss_p50_dB = DiffractionLoss::calcDeltaBullingtonLoss_dB(path,height_tx_m,height_rx_m,
+            val_calcMedianEffectiveRadius_km,freq_GHz,frac_over_sea,pol);
 
     DiffractionLoss::DiffResults results = DiffractionLoss::DiffResults();
     results.diff_loss_p50_dB = diff_loss_p50_dB;
@@ -140,8 +145,8 @@ DiffractionLoss::DiffResults DiffractionLoss::calcDiffractionLoss_dB(const PathP
     }
     else if(p_percent<50){
         //Delta Bullington Loss not exceeded for b0% time
-        const double Ldb = DiffractionLoss::calcDeltaBullingtonLoss_dB(path,height_tx_asl_m,height_rx_asl_m,eff_height_itx_asl_m,
-                eff_height_irx_asl_m,EffectiveEarth::k_eff_radius_bpercentExceeded_km,freq_GHz,frac_over_sea,pol);
+        const double Ldb = DiffractionLoss::calcDeltaBullingtonLoss_dB(path,height_tx_m,height_rx_m,
+                EffectiveEarth::k_eff_radius_bpercentExceeded_km,freq_GHz,frac_over_sea,pol);
 
         //interpolation factor 
         double Fi;

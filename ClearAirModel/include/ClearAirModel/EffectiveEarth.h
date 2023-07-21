@@ -5,6 +5,12 @@
 
 namespace EffectiveEarth{
 
+    //Pair for returning tx (first) and rx (second) values
+    using TxRxPair = std::pair<double,double>;
+
+    //Pair for returning horizon angles(mrad) (first) and horizon distances(km) (second)
+    using HorizonAnglesAndDistances = std::pair<TxRxPair,TxRxPair>;
+
     //Eq 6b, Median Effective Earth radius exceeded for b% of time
     //kb = 3 at Point Incidence of anomalous propagation b0
     constexpr double k_eff_radius_bpercentExceeded_km = 6371.0 * 3.0; 
@@ -13,12 +19,6 @@ namespace EffectiveEarth{
     /// @param delta_N  Average radio-refractivity lapse-rate through the lowest 1 km of the atmosphere (N-units/km)
     /// @return Effective Earth Radius (km)
     double calcMedianEffectiveRadius_km(const double& delta_N);
-
-    //struct for returning tx/rx height pairs
-    struct TxRxPair{
-        double tx_val;
-        double rx_val;
-    };
 
     /// @brief Annex 2 Section 5.1.6.2 Creates a smooth least-squares straight line approximation for the path
     ///        Helper method for calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m
@@ -35,25 +35,23 @@ namespace EffectiveEarth{
     /// @return Tx,Rx effective antenna heights for the diffraction model (amsl) (m)
     TxRxPair calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m);
 
-    //Struct for returning horizon angles(mrad) and horizon distances(km)
-    //These values are intrinsically connected and would be difficult to calculate separately
-    struct HorizonAnglesAndDistances{
-        TxRxPair horizonDist_km;
-        TxRxPair horizonElevation_mrad;
-    };
-
     /// @brief Annex 1 Attachment 2 Section 4,5 Calculating Antenna Horizon Elevation Angle and Horizon Distances
     /// @param path                 Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
-    /// @param height_tx_asl_m       Tx Antenna height (asl_m)
-    /// @param height_rx_asl_m       Rx Antenna height (asl_m)
+    /// @param height_tx_asl_m      Tx Antenna height (asl_m)
+    /// @param height_rx_asl_m      Rx Antenna height (asl_m)
     /// @param eff_radius_med_km    Median effective Earth's radius (km)
     /// @param freq_GHz             Frequency (GHz)
     /// @return Antenna Horizon Distances (km) and Horizon Elevation Angles (mrad)
     HorizonAnglesAndDistances calcHorizonAnglesAndDistances(const PathProfile::Path& path, const double& height_tx_asl_m,
                                 const double& height_rx_asl_m, const double& eff_radius_med_km, const double& freq_GHz);
-
-
-//TODO implement function for equation 159
+    
+    /// @brief Calculates the path angular distance from the path profile analysis results
+    /// @param elevationAngles_mrad Horizon Elevation Angles for transhorizon path, 
+    ///                             otherwise elevation angles towards other antenna for LOS path
+    /// @param dtot_km              Distance between Tx and Rx (km)
+    /// @param eff_radius_med_km    Median effective Earth's radius (km)
+    /// @return Path Angular Distance parameter (mrad)
+    double calcPathAngularDistance_mrad(const TxRxPair& elevationAngles_mrad, const double& dtot_km, const double& eff_radius_med_km);
 
 }
 #endif /* EFFECTIVE_EARTH_H */

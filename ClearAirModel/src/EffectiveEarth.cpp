@@ -26,14 +26,12 @@ EffectiveEarth::TxRxPair EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_
         prevPoint = point;
     }
     
-    EffectiveEarth::TxRxPair height_results = EffectiveEarth::TxRxPair();
-
     //Equation 163 Tx least squares model height 
-    height_results.tx_val = (2.0*v1*d_tot-v2)/(d_tot*d_tot); 
+    const double height_tx_amsl_m = (2.0*v1*d_tot-v2)/(d_tot*d_tot); 
     //Equation 164 Tx least squares model height 
-    height_results.rx_val = (v2-v1*d_tot)/(d_tot*d_tot);   
+    const double height_rx_amsl_m = (v2-v1*d_tot)/(d_tot*d_tot);   
 
-    return height_results;
+    return EffectiveEarth::TxRxPair{height_tx_amsl_m,height_rx_amsl_m};
 }
 
 EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(const PathProfile::Path& path, 
@@ -63,28 +61,26 @@ EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionM
         alpha_obs_r_max = std::max(alpha_obs_r_max,height_val/delta_d);      //Eq 165c
     }
 
+    //Equations 166a, 166b
     //Tx,Rx heights from a least squares smooth path
-    const auto height_se_m_amsl_pair = EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(path);
+    auto [height_smooth_tx_amsl_m,height_smooth_rx_amsl_m] = 
+            EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(path);
 
-    double hstp = height_se_m_amsl_pair.tx_val; //Eq 166a
-    double hsrp = height_se_m_amsl_pair.rx_val; //Eq 166b
-    
     //Modify heights to compensate for obstructions
     if(height_obs_max>0){
         const double v1 = alpha_obs_t_max+alpha_obs_r_max;
         const double gt = alpha_obs_t_max/v1; //Eq 166e
         const double gr = alpha_obs_r_max/v1; //Eq 166f
 
-        hstp-=height_obs_max*gt; //Eq 166c
-        hsrp-=height_obs_max*gr; //Eq 166d
+        height_smooth_tx_amsl_m-=height_obs_max*gt; //Eq 166c
+        height_smooth_rx_amsl_m-=height_obs_max*gr; //Eq 166d
     }
-    
-    EffectiveEarth::TxRxPair height_results = EffectiveEarth::TxRxPair();
 
     //Limit effective antenna heights to be above actual terrain ground height
-    height_results.tx_val = std::min(path.front().h_asl_m, hstp); //Eq 167 a,b
-    height_results.rx_val = std::min(path.back().h_asl_m, hsrp); //Eq 167 c,d
-    return height_results;
+    double eff_height_tx_amsl_m = std::min(path.front().h_asl_m, height_smooth_tx_amsl_m); //Eq 167 a,b
+    double eff_height_rx_amsl_m = std::min(path.back().h_asl_m, height_smooth_rx_amsl_m); //Eq 167 c,d
+    
+    return EffectiveEarth::TxRxPair{eff_height_tx_amsl_m,eff_height_rx_amsl_m};
 }
 
 EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::calcHorizonAnglesAndDistances(const PathProfile::Path& path,
@@ -121,14 +117,15 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::calcHorizonAnglesAndDi
     //Equation 150 check if path is Line of Sight or Trans-Horizon
     const bool isTranshorizon = theta_tmax>theta_td;
 
-    HorizonAnglesAndDistances results = HorizonAnglesAndDistances();
+    //declare variables for final results
+    double horizonElevation_tx_mrad, horizonElevation_rx_mrad, horizonDist_tx_km, horizonDist_rx_km;
 
     //Equation 154 Tx (interfering) antenna horizon elevation angle
-    results.horizonElevation_mrad.tx_val = std::max(theta_tmax,theta_td);
+    horizonElevation_tx_mrad = std::max(theta_tmax,theta_td);
 
     if(isTranshorizon){
         //Equation 155
-        results.horizonDist_km.tx_val = path.at(tx_index).d_km;
+        horizonDist_tx_km = path.at(tx_index).d_km;
 
         //Calculate max rx elevation angle
         double theta_rmax = std::numeric_limits<double>::lowest();
@@ -149,9 +146,9 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::calcHorizonAnglesAndDi
         }
 
         //Equation 156b horizon elevation angle from rx antenna
-        results.horizonElevation_mrad.rx_val = theta_rmax;
+        horizonElevation_rx_mrad = theta_rmax;
         //Equation 158
-        results.horizonDist_km.rx_val = d_tot - path.at(rx_index).d_km;
+        horizonDist_rx_km = d_tot - path.at(rx_index).d_km;
 
     }
     else{
@@ -179,18 +176,31 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::calcHorizonAnglesAndDi
             }
         }
         //Equation 155a
-        results.horizonDist_km.tx_val = path.at(tx_index).d_km;
+        horizonDist_tx_km = path.at(tx_index).d_km;
 
         //Equation 156a
-        results.horizonElevation_mrad.rx_val = 1e3*std::atan(
+        horizonElevation_rx_mrad = 1e3*std::atan(
             (height_tx_asl_m-height_rx_asl_m)/(1e3*d_tot)
             -d_tot/(2.0*eff_radius_med_km)
         );
         //Equation 158a
-        results.horizonDist_km.rx_val = d_tot - results.horizonDist_km.tx_val;
+        horizonDist_rx_km = d_tot - horizonDist_tx_km;
     }
-    return results;
+
+    return EffectiveEarth::HorizonAnglesAndDistances{
+        EffectiveEarth::TxRxPair{horizonElevation_tx_mrad,horizonElevation_rx_mrad},
+        EffectiveEarth::TxRxPair{horizonDist_tx_km,horizonDist_rx_km}
+    };
 }
+
+double EffectiveEarth::calcPathAngularDistance_mrad(const EffectiveEarth::TxRxPair& elevationAngles_mrad, 
+        const double& dtot_km, const double& eff_radius_med_km){
+
+    const auto [txHorizonAngle_mrad, rxHorizonAngle_mrad] = elevationAngles_mrad;
+    //Equation 159
+    return 1e3*dtot_km/eff_radius_med_km + txHorizonAngle_mrad + rxHorizonAngle_mrad;
+}
+
 
 
 /*

@@ -2,7 +2,10 @@
 #include "ClearAirModel/PathProfile.h"
 #include "ClearAirModel/CalculationHelpers.h"
 #include "ClearAirModel/EffectiveEarth.h"
+#include "ClearAirModel/DataGrid2.h"
 #include "ClearAirModel/BasicProp.h"
+#include "ClearAirModel/TropoScatter.h"
+
 #include "Common/PowerUnitConversionHelpers.h"
 #include "Common/DataStructures.h"
 #include <filesystem>
@@ -15,8 +18,8 @@
 namespace {
 	// Use when expected an exact match
 	double constexpr TOLERANCE = 1.0e-6;
-	const std::filesystem::path clearAirDataRelPath = "tests/test_paths";
-	const std::filesystem::path clearAirDataFullPath = CMAKE_CLEARAIR_SRC_DIR / clearAirDataRelPath;
+	const std::filesystem::path clearAirPathsFullPath = CMAKE_CLEARAIR_SRC_DIR / std::filesystem::path("tests/test_paths");
+	const std::filesystem::path clearAirDataFullPath = CMAKE_CLEARAIR_SRC_DIR / std::filesystem::path("data");
 }
 
 TEST(ProfilePathTests, loadProfileTest){
@@ -45,7 +48,7 @@ TEST(ProfilePathTests, loadProfileTest){
 		1663,110
 	};
 	for (uint16_t profileInd = 0; profileInd < PROFILE_LIST.size(); profileInd++) {
-		const PathProfile::Path PROFILE(clearAirDataFullPath/std::filesystem::path(PROFILE_LIST[profileInd]));
+		const PathProfile::Path PROFILE(clearAirPathsFullPath/std::filesystem::path(PROFILE_LIST[profileInd]));
 		EXPECT_NEAR(EXPECTED_FIRST_D_LIST[profileInd], PROFILE.front().d_km, TOLERANCE);
 		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_asl_m, TOLERANCE);
 		EXPECT_EQ(EXPECTED_FIRST_ZONE_LIST[profileInd], static_cast<int>(PROFILE.front().zone));
@@ -88,12 +91,12 @@ TEST(EffectiveEarthTests, calcLeastSquaresSmoothEarthHeightsHelper){
 	const double EXPECTED_START = 635.2;
 	const double EXPECTED_END = 357.3;
 
-	const PathProfile::Path p(clearAirDataFullPath/std::filesystem::path("dbull_path1.csv"));
-	const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(p);
+	const PathProfile::Path p(clearAirPathsFullPath/std::filesystem::path("dbull_path1.csv"));
+	const auto [eff_height_tx, eff_height_rx] = EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(p);
 
 	//high tolerance since the values were read off a graph
-	EXPECT_NEAR(EXPECTED_START,EFF_HEIGHT.tx_val,0.5);
-	EXPECT_NEAR(EXPECTED_END,EFF_HEIGHT.rx_val,0.5);
+	EXPECT_NEAR(EXPECTED_START,eff_height_tx,0.5);
+	EXPECT_NEAR(EXPECTED_END,eff_height_rx,0.5);
 }
 
 //Compare free space path loss value against other existing implementation
@@ -109,4 +112,62 @@ TEST(BasicPropTests, calcFreeSpacePathLoss){
 
 	//Eq 8 Constant used has resolution up to 0.1 dB
 	EXPECT_NEAR(EXPECTED_LOSS,VAL_LOSS,0.05);
+}
+
+//check to see if they load without error
+TEST(DataGridTests, loadDataGridTest){
+	const std::vector<std::string> DATA_LIST = {
+		"DN50.TXT", "N050.TXT"
+	};
+	const double RESOLUTION = 1.5;
+	const std::vector<double> EXPECTED_FIRST = {
+		40.726,317.248
+	};
+	for (uint16_t dataInd = 0; dataInd < DATA_LIST.size(); dataInd++) {
+		const DataGrid2 data(clearAirDataFullPath/std::filesystem::path(DATA_LIST[dataInd]),RESOLUTION);
+
+		EXPECT_NEAR(EXPECTED_FIRST[dataInd], data.interpolate2D(GeodeticCoord(0.0,89.999999)), TOLERANCE);
+	}	
+}
+
+//Check values at lat/lon coordinates
+//expected values checked by hand
+TEST(DataGridTests, getDataGridValuesDN50Test){
+	const double RESOLUTION = 1.5;
+	const DataGrid2 data(clearAirDataFullPath/std::filesystem::path("DN50.TXT"),RESOLUTION);
+
+	const std::vector<double> INPUT_LON = {
+		36,-4.5,179.99999999
+	};
+	const std::vector<double> INPUT_LAT = {
+		61.5,24.0,-58.5
+	};
+	const std::vector<double> EXPECTED_DN50 = {
+		36.530,40.412,38.788
+	};
+
+	for (uint16_t coordInd = 0; coordInd < INPUT_LON.size(); coordInd++) {
+
+		EXPECT_NEAR(EXPECTED_DN50[coordInd], data.interpolate2D(GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
+	}	
+}
+
+TEST(DataGridTests, fetchDataGridValuesN050Test){
+	const double RESOLUTION = 1.5;
+	const DataGrid2 data(clearAirDataFullPath/std::filesystem::path("N050.TXT"),RESOLUTION);
+
+	const std::vector<double> INPUT_LON = {
+		36,-4.5,179.99999999
+	};
+	const std::vector<double> INPUT_LAT = {
+		61.5,24.0,-58.5
+	};
+	const std::vector<double> EXPECTED_N050 = {
+		316.375,314.726,317.199
+	};
+
+	for (uint16_t coordInd = 0; coordInd < INPUT_LON.size(); coordInd++) {
+		EXPECT_NEAR(EXPECTED_N050[coordInd], data.interpolate2D(GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
+		EXPECT_NEAR(EXPECTED_N050[coordInd], TropoScatter::fetchSeaLevelSurfaceRefractivity(GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
+	}	
 }

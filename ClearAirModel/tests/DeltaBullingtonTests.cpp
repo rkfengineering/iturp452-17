@@ -57,14 +57,14 @@ TEST_F(DeltaBullingtonTests, calculateDiffractionModelSmoothEarthHeightsTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         const PathProfile::Path p = m_profile_list[PATH_LIST[pathInd]-1];
         //Calculate ground level height relative to sea level at tx,rx in smooth earth model 
-        const EffectiveEarth::TxRxPair EFF_HEIGHT = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
+        const auto [EFF_HEIGHT_TX, EFF_HEIGHT_RX] = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         //Calculate actual antenna heights relative to sea level
         const double HTS_AMSL = HTS_LIST[pathInd]+p.front().h_asl_m;
         const double HRS_AMSL = HRS_LIST[pathInd]+p.back().h_asl_m;
         //Equation 38 to calculate modified antenna heights
-        EXPECT_NEAR(EXPECTED_HTSP[pathInd],HTS_AMSL-EFF_HEIGHT.tx_val,TOLERANCE);
-        EXPECT_NEAR(EXPECTED_HRSP[pathInd],HRS_AMSL-EFF_HEIGHT.rx_val,TOLERANCE);
+        EXPECT_NEAR(EXPECTED_HTSP[pathInd],HTS_AMSL-EFF_HEIGHT_TX,TOLERANCE);
+        EXPECT_NEAR(EXPECTED_HRSP[pathInd],HRS_AMSL-EFF_HEIGHT_RX,TOLERANCE);
     }
 }
 
@@ -157,13 +157,13 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSphericalEarthLossFirstTermTest
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = m_profile_list[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
+        const auto [height_eff_tx_amsl_m,height_eff_rx_amsl_m] = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         
         //First term of spherical diffraction loss
         const double FT = DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_dB(p.back().d_km-p.front().d_km, 
-            HTS_LIST[pathInd]+p.front().h_asl_m-height_eff_m.tx_val, //effective height relative to ground
-            HRS_LIST[pathInd]+p.back().h_asl_m-height_eff_m.rx_val,
+            HTS_LIST[pathInd]+p.front().h_asl_m-height_eff_tx_amsl_m, //effective height relative to ground
+            HRS_LIST[pathInd]+p.back().h_asl_m-height_eff_rx_amsl_m,
             m_effEarthRadius_km, 
             FREQ_MHZ_LIST[pathInd]/1000.0,
             0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
@@ -210,12 +210,12 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSphericalEarthLossTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = m_profile_list[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
+        const auto [height_eff_tx_amsl_m,height_eff_rx_amsl_m] =  EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
             p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
         
         const double LSPH = DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(p.back().d_km-p.front().d_km, 
-            HTS_LIST[pathInd]+p.front().h_asl_m-height_eff_m.tx_val, //effective height relative to ground
-            HRS_LIST[pathInd]+p.back().h_asl_m-height_eff_m.rx_val,
+            HTS_LIST[pathInd]+p.front().h_asl_m-height_eff_tx_amsl_m, //effective height relative to ground
+            HRS_LIST[pathInd]+p.back().h_asl_m-height_eff_rx_amsl_m,
             m_effEarthRadius_km, 
             FREQ_MHZ_LIST[pathInd]/1000.0,
             0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
@@ -259,15 +259,11 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcDeltaBullingtonLossTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path p = m_profile_list[PATH_LIST[pathInd]-1];
-        const EffectiveEarth::TxRxPair height_eff_m = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
-            p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
-        
+     
         const double LOSS_VAL = DiffractionLoss::calcDeltaBullingtonLoss_dB(
             p, 
-            HTS_LIST[pathInd]+p.front().h_asl_m,
-            HRS_LIST[pathInd]+p.back().h_asl_m,
-            height_eff_m.tx_val,
-            height_eff_m.rx_val,
+            HTS_LIST[pathInd],
+            HRS_LIST[pathInd],
             m_effEarthRadius_km, 
             FREQ_MHZ_LIST[pathInd]/1000.0,
             0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol

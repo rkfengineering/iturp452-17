@@ -5,6 +5,15 @@
 #include "Common/Enumerations.h"
 
 namespace DiffractionLoss {
+    //using DiffractionLoss_pPercent_and_median = std::pair<double,double>;
+
+    /// @brief Results for the Diffraction Loss model from Section 4.5.4
+    /// @param diff_loss_p_dB      Diffraction Loss for the general path not exceeded for p% of the time (dB)
+    /// @param diff_loss_p50_dB    Diffraction Loss for p=50% (dB)
+    struct DiffResults{
+        double diff_loss_p_dB;     
+        double diff_loss_p50_dB;
+    };
 
     ///WARNING When calculating the diffraction parameter, certain square brackets may render as a floor function.
     //They are supposed to be brackets    
@@ -20,36 +29,23 @@ namespace DiffractionLoss {
 
     /// @brief Delta-Bullington diffraction loss model from Section 4.2.3
     /// @param path                 Contains distance (km) and height (asl_m) profile points
-    /// @param height_tx_asl_m       Tx Antenna height (asl_m)
-    /// @param height_rx_asl_m       Rx Antenna height (asl_m)
-    /// @param eff_height_itx_asl_m  Effective height of interfering antenna (asl_m)
-    /// @param eff_height_irx_asl_m  Effective height of interfered with antenna (asl_m)
+    /// @param height_tx_m          Tx Antenna height (m)
+    /// @param height_rx_m          Rx Antenna height (m)
     /// @param eff_radius_p_km      Effective Earth radius for time percentage (km)
-    /// @param freq_GHz              Frequency (GHz)
+    /// @param freq_GHz             Frequency (GHz)
     /// @param frac_over_sea        Fraction of the path over sea
     /// @param pol                  Polarization type (horizontal or vertical)
     /// @return Diffraction loss from complete delta-bullington model (dB)
-    double calcDeltaBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m, 
-            const double& eff_height_itx_asl_m, const double& eff_height_irx_asl_m, const double& eff_radius_p_km, 
-            const double& freq_GHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol);
-
-    /// @brief Results for the Diffraction Loss model from Section 4.5.4
-    /// @param diff_loss_p_dB      Diffraction Loss for the general path not exceeded for p% of the time (dB)
-    /// @param diff_loss_p50_dB    Diffraction Loss for p=50% (dB)
-    struct DiffResults{
-        double diff_loss_p_dB;     
-        double diff_loss_p50_dB;
-    };
+    double calcDeltaBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m,
+        const double& eff_radius_p_km, const double& freq_GHz, const double& frac_over_sea, const Enumerations::PolarizationType& pol);
 
     //TODO find better names for b0, DN
 
     /// @brief Diffraction Loss model from Section 4.5.4
     /// @param path                    Contains distance (km) and height (asl_m) profile points
-    /// @param height_tx_asl_m          Tx Antenna height (asl_m)
-    /// @param height_rx_asl_m          Rx Antenna height (asl_m)
-    /// @param eff_height_itx_asl_m     Effective height of interfering antenna (asl_m)
-    /// @param eff_height_irx_asl_m     Effective height of interfered with antenna antenna (asl_m)
-    /// @param freq_GHz                 Frequency (GHz)
+    /// @param height_tx_m             Tx Antenna height (m)
+    /// @param height_rx_m             Rx Antenna height (m)
+    /// @param freq_GHz                Frequency (GHz)
     /// @param frac_over_sea           Fraction of the path over sea
     /// @param pol                     Polarization type (horizontal or vertical)
     /// @param p_percent               Percentage of time not exceeded (%), 0<p<=50
@@ -57,9 +53,8 @@ namespace DiffractionLoss {
     /// @param DN                      Average radio-refractive index lapse-rate through the lowest 1km of the atmosphere (positive value) 
     /// @param pol                     Polarization type (horizontal or vertical)
     /// @return 
-    DiffResults calcDiffractionLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m,
-            const double& eff_height_itx_asl_m, const double& eff_height_irx_asl_m, const double& freq_GHz, 
-            const double& frac_over_sea, const double& p_percent, const double&b0, 
+    DiffResults calcDiffractionLoss_dB(const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m,
+            const double& freq_GHz, const double& frac_over_sea, const double& p_percent, const double&b0, 
             const double& DN, const Enumerations::PolarizationType& pol);
 
     /// @brief Spherical Earth Diffraction Loss exceeded for p% time from Section 4.2.2
