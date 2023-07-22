@@ -10,7 +10,7 @@ ClutterLoss::ClutterLossResults ClutterLoss::calcClutterLoss_dB(const double& fr
             const double& rx_clutter_dist_km){
 
     u_int16_t index1 = 0;
-    u_int16_t index2 = path.size()-1;
+    u_int16_t index2 = path.size();//sentinel index. the last valid value is right before this
     double hg_height_tx_m = height_tx_m;
     double hg_height_rx_m = height_rx_m;
     double tx_clutterLoss_dB = 0;
@@ -28,7 +28,7 @@ ClutterLoss::ClutterLossResults ClutterLoss::calcClutterLoss_dB(const double& fr
             index1 = it-path.begin();
         }
         else{
-            index1 = path.size()-1;
+            index1 = path.size();
         }
         hg_height_tx_m = tx_clutter_height_m;
 

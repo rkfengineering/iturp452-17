@@ -4,6 +4,7 @@
 #include "ClearAirModel/DiffractionLoss.h"
 #include "ClearAirModel/TropoScatter.h"
 #include "ClearAirModel/AnomolousProp.h"
+#include "ClearAirModel/P452TotalAttenuation.h"
 #include <filesystem>
 
 //Validation data from ITU validation spreadsheets in results folder
@@ -13,6 +14,8 @@
 //Intermediate results from the transmission losses tab of the spreadsheets in the validation examples folder are inaccurate.
 //They do not account for the 0.1dB difference in the free space path loss constant changed between 452-16 and 452-17. 
 //As such, results from the spreadsheets in the results folder are preferred
+
+//NOTE: this does not test the clutter model
 
 namespace {
 	// Use when expected an exact match
@@ -439,7 +442,6 @@ TEST(AnomolousPropTests, calcAnomolousPropLossTest){
     const double HTG = 10;
     const double HRG = 10;
     const double DN = 53;
-    const double FREQ_GHZ = 0.2;
     const double TEMP_C = 15;
     const double DRY_PRESSURE_HPA = 1013;
     const double DIST_COAST_TX = 500;
@@ -457,11 +459,7 @@ TEST(AnomolousPropTests, calcAnomolousPropLossTest){
     const double SEA_FRAC = p.calcFracOverSea();
     const double LONGEST_INLAND_KM = p.calcLongestContiguousInlandDistance_km();
 
-    const auto HORIZON_VALS = EffectiveEarth::calcHorizonAnglesAndDistances(p, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ);
-    const auto [HORIZON_ANGLES, HORIZON_DISTANCES] = HORIZON_VALS;
-
     const auto EFF_HEIGHTS_DUCTING = EffectiveEarth::calcSmoothEarthTxRxHeights_DuctingModel_amsl_m(p, HTG, HRG);
-    const double TERRAIN_ROUGHNESS = EffectiveEarth::calcTerrainRoughness_m(p, HORIZON_DISTANCES);
 
     //basic transmission loss from ducting/layer refraction
     const std::vector<double> EXPECTED_LBA = {
@@ -474,6 +472,10 @@ TEST(AnomolousPropTests, calcAnomolousPropLossTest){
     };
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
+        const auto HORIZON_VALS = 
+            EffectiveEarth::calcHorizonAnglesAndDistances(p, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]);
+        const auto [HORIZON_ANGLES, HORIZON_DISTANCES] = HORIZON_VALS;
+        const double TERRAIN_ROUGHNESS = EffectiveEarth::calcTerrainRoughness_m(p, HORIZON_DISTANCES);
         //input effective antanna heights relative to ground, frequency in GHz    
         const double FIXED_LOSS = AnomolousProp::calcFixedCouplingLoss_helper_dB(
             FREQ_GHZ_LIST[freqInd],
@@ -508,5 +510,74 @@ TEST(AnomolousPropTests, calcAnomolousPropLossTest){
         );
 
         EXPECT_NEAR(EXPECTED_LBA[freqInd],LOSS_VAL,TOLERANCE);
+    }
+}
+
+TEST(P452TotalAttenuationTests, calcP452TotalAttenuationTest){
+	// Arrange
+	const std::vector<double> FREQ_GHZ_LIST = {
+		0.2,0.1,0.15,0.225,0.3375,0.50625,0.759375,1.1390625,
+		1.70859375,2.562890625,3.844335938,5.766503906,8.649755859,
+		12.97463379,19.46195068,29.19292603,43.78938904,50,0.2,0.2,
+		0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2
+	};
+    const std::vector<double> P_LIST = {
+        0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,
+        0.1,0.1,0.1,1,4,7,10,13,16,19,22,25,28,31,34,37,40,43,46,49,
+    };
+
+    const PathProfile::Path path(clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv"));
+    const double PHI_T = 51.2;
+    const double PHI_R = 50.73;
+    const double HTG = 10;
+    const double HRG = 10;
+    const double TX_GAIN = 20;
+    const double RX_GAIN = 5;
+    const double DN = 53;
+    const double N0 = 328;
+    const double DIST_COAST_TX = 500;
+    const double DIST_COAST_RX = 500;
+    const double DRY_PRESSURE_HPA = 1013;
+    const double TEMP_C = 15;
+    const double CLUTTER_PARAMS = 0;//TODO write these out
+    const auto POL = Enumerations::PolarizationType::HorizontalPolarized;
+
+    const double INPUT_LAT = (PHI_T+PHI_R)/2.0;
+    const double TEMP_K = TEMP_C + 273.15;
+
+
+    //basic loss prediction not exceeded for p percent
+    const std::vector<double> EXPECTED_LOSS = {
+        137.034078,135.6994078,139.1402296,135.7553749,130.2255573,125.1203141,
+        129.2381754,133.4109365,137.6350078,141.9418602,146.3826471,151.0333652,
+        156.0476686,161.9480818,175.5751017,181.4116455,195.6900565,221.4087527,
+        144.7198,146.8225507,149.0696062,150.6136142,151.8213937,152.8307633,
+        153.7092651,154.4953347,155.2131056,155.8788522,156.5041814,157.0977732,
+        157.6664118,158.2156527,158.7503278,159.2751142,159.7963648
+    };
+
+    for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
+        const double LOSS_VAL = p452_TotalAttenuation::calcP452TotalAttenuation(
+            FREQ_GHZ_LIST[freqInd],
+            P_LIST[freqInd],
+            path,
+            HTG,
+            HRG,
+            INPUT_LAT,
+            TX_GAIN,
+            RX_GAIN,
+            POL,
+            DIST_COAST_TX,
+            DIST_COAST_RX,
+            DN,
+            N0,
+            TEMP_K,
+            DRY_PRESSURE_HPA,
+            CLUTTER_PARAMS,
+            CLUTTER_PARAMS,
+            CLUTTER_PARAMS,
+            CLUTTER_PARAMS
+        );
+        EXPECT_NEAR(EXPECTED_LOSS[freqInd],LOSS_VAL,TOLERANCE);
     }
 }

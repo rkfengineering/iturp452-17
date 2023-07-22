@@ -20,10 +20,10 @@ double BasicProp::calcPathLossWithGasAndMultipath_dB(const double& d_tot_km, con
     const double freeSpaceWithGasLoss_dB = BasicProp::calcFreeSpacePathLoss_dB(d_los_km,freq_GHz) + gasLoss_dB;
 
     //Equation 10a,10b
-    const double calcMultipathFocusingCorrection_dB_dB = BasicProp::calcMultipathFocusingCorrection_dB(d_horizon_t_km, d_horizon_r_km, p_percent);
+    const double calcMultipathFocusingCorrection_dB = BasicProp::calcMultipathFocusingCorrection_dB(d_horizon_t_km, d_horizon_r_km, p_percent);
 
     //Equation 11,12
-    return freeSpaceWithGasLoss_dB + calcMultipathFocusingCorrection_dB_dB;
+    return freeSpaceWithGasLoss_dB + calcMultipathFocusingCorrection_dB;
 }
 
 double BasicProp::calcFreeSpacePathLoss_dB(const double& d_los_km, const double& freq_GHz){
