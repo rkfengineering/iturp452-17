@@ -3,9 +3,8 @@
 #include "Common/MathHelpers.h"
 #include <cmath>
 
-double BasicProp::calcPathLossWithGasAndMultipath_dB(const double& d_tot_km, const double& height_tx_asl_m, const double& height_rx_asl_m,
-                        const double& freq_GHz, const double& temp_K, const double& dryPressure_hPa, const double& frac_over_sea,
-                        const double& d_horizon_t_km, const double& d_horizon_r_km, const double& p_percent){
+double BasicProp::calcPathLossWithGas_dB(const double& d_tot_km, const double& height_tx_asl_m, const double& height_rx_asl_m,
+                        const double& freq_GHz, const double& temp_K, const double& dryPressure_hPa, const double& frac_over_sea){
     
     //Equation 8a distance accounting for height differential (calculated for transhorizon paths too)
     const double d_los_km = std::sqrt(MathHelpers::simpleSquare(d_tot_km)+
@@ -16,14 +15,8 @@ double BasicProp::calcPathLossWithGasAndMultipath_dB(const double& d_tot_km, con
     // Equation 9
     const double gasLoss_dB = BasicProp::calcGasAtten_dB(d_los_km,freq_GHz,temp_K,dryPressure_hPa,rho);
 
-    //Equation 8
-    const double freeSpaceWithGasLoss_dB = BasicProp::calcFreeSpacePathLoss_dB(d_los_km,freq_GHz) + gasLoss_dB;
-
-    //Equation 10a,10b
-    const double calcMultipathFocusingCorrection_dB = BasicProp::calcMultipathFocusingCorrection_dB(d_horizon_t_km, d_horizon_r_km, p_percent);
-
-    //Equation 11,12
-    return freeSpaceWithGasLoss_dB + calcMultipathFocusingCorrection_dB;
+    //Equation 8 add free space path loss and gaseous attenuation
+    return BasicProp::calcFreeSpacePathLoss_dB(d_los_km,freq_GHz) + gasLoss_dB;
 }
 
 double BasicProp::calcFreeSpacePathLoss_dB(const double& d_los_km, const double& freq_GHz){

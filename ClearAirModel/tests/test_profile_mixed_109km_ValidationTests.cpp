@@ -146,6 +146,14 @@ TEST(BasicPropTests, calcPathLossWithGasAndMultipathTest){
     const double INPUT_LAT = (PHI_T+PHI_R)/2.0;
     const double VAL_B0= p.calcTimePercentBeta0(INPUT_LAT);
 
+    const std::vector<double> EXPECTED_LBFSG = {
+        119.2505028,113.1705634,116.7182677,120.2924512,123.9090093,127.5721488,
+        131.2544994,134.9127624,138.5303364,142.1243811,145.7304834,149.4077802,
+        153.2915773,157.8841654,170.0033358,174.1060026,186.394591,211.401584,
+        119.2505028,119.2505028,119.2505028,119.2505028,119.2505028,119.2505028,
+        119.2505028,119.2505028,119.2505028,119.2505028,119.2505028,119.2505028,
+        119.2505028,119.2505028,119.2505028,119.2505028,119.2505028
+    };
     const std::vector<double> EXPECTED_LB0P = {
         112.3752248,106.2952854,109.8429897,113.4171732,117.0337313,
         120.6968708,124.3792214,128.0374844,131.6550584,135.2491031,
@@ -171,30 +179,26 @@ TEST(BasicPropTests, calcPathLossWithGasAndMultipathTest){
         );
         const auto [horizonDist_tx_km, horizonDist_rx_km] = HorizonDistances;
 
-        const double VAL_LB0P = BasicProp::calcPathLossWithGasAndMultipath_dB(
+        const double VAL_LBFSG = BasicProp::calcPathLossWithGas_dB(
             p.back().d_km,
             HTS_MASL,
             HRS_MASL,
             FREQ_GHZ_LIST[freqInd],
             TEMP_K,
             DRY_PRESSURE_HPA,
-            SEA_FRAC,
+            SEA_FRAC
+        );
+        const double VAL_LB0P = VAL_LBFSG + BasicProp::calcMultipathFocusingCorrection_dB(
             horizonDist_tx_km,
             horizonDist_rx_km,
             P_LIST[freqInd]
         );
-        const double VAL_LB0B = BasicProp::calcPathLossWithGasAndMultipath_dB(
-            p.back().d_km,
-            HTS_MASL,
-            HRS_MASL,
-            FREQ_GHZ_LIST[freqInd],
-            TEMP_K,
-            DRY_PRESSURE_HPA,
-            SEA_FRAC,
+        const double VAL_LB0B = VAL_LBFSG + BasicProp::calcMultipathFocusingCorrection_dB(
             horizonDist_tx_km,
             horizonDist_rx_km,
             VAL_B0
         );
+        EXPECT_NEAR(EXPECTED_LBFSG[freqInd],VAL_LBFSG,TOLERANCE_STRICT);
         EXPECT_NEAR(EXPECTED_LB0P[freqInd],VAL_LB0P,TOLERANCE_STRICT);
         EXPECT_NEAR(EXPECTED_LB0B[freqInd],VAL_LB0B,TOLERANCE_STRICT);
     }
