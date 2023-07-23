@@ -55,13 +55,26 @@ TEST_F(DeltaBullingtonTests, calculateDiffractionModelSmoothEarthHeightsTest){
     };
 
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
-        const PathProfile::Path p = m_profile_list[PATH_LIST[pathInd]-1];
-        //Calculate ground level height relative to sea level at tx,rx in smooth earth model 
-        const auto [EFF_HEIGHT_TX, EFF_HEIGHT_RX] = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
-            p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
+        const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
         //Calculate actual antenna heights relative to sea level
-        const double HTS_AMSL = HTS_LIST[pathInd]+p.front().h_asl_m;
-        const double HRS_AMSL = HRS_LIST[pathInd]+p.back().h_asl_m;
+        const double HTS_AMSL = HTS_LIST[pathInd]+path.front().h_asl_m;
+        const double HRS_AMSL = HRS_LIST[pathInd]+path.back().h_asl_m;
+
+        const auto DiffractionModel = DiffractionLoss(
+            path, 
+            HTS_AMSL,
+            HRS_AMSL,
+            FREQ_MHZ_LIST[pathInd]/1000.0,
+            53,//delta N isn't tested here
+            Enumerations::PolarizationType::HorizontalPolarized,
+            0.1, //p_percent isn't tested here
+            3.0, //b0_percent isn't tested here
+            path.calcFracOverSea()
+        );
+
+        //Calculate ground level height relative to sea level at tx,rx in smooth earth model 
+        const auto [EFF_HEIGHT_TX, EFF_HEIGHT_RX] = DiffractionModel.calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m();
+
         //Equation 38 to calculate modified antenna heights
         EXPECT_NEAR(EXPECTED_HTSP[pathInd],HTS_AMSL-EFF_HEIGHT_TX,TOLERANCE);
         EXPECT_NEAR(EXPECTED_HRSP[pathInd],HRS_AMSL-EFF_HEIGHT_RX,TOLERANCE);
@@ -102,13 +115,27 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcBullingtonLossTest){
 
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); ++pathInd) {
         //input heights need to be in m asl, frequency in GHz
-        const PathProfile::Path p = m_profile_list[PATH_LIST[pathInd]-1];
-        const double LBA = DiffractionLoss::calcBullingtonLoss_dB(p,
-            HTS_LIST[pathInd]+p.front().h_asl_m,
-            HRS_LIST[pathInd]+p.back().h_asl_m,
-            m_effEarthRadius_km, 
-            FREQ_MHZ_LIST[pathInd]/1000.0);
+        const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
 
+        const auto DiffractionModel = DiffractionLoss(
+            path, 
+            HTS_LIST[pathInd] + path.front().h_asl_m,
+            HRS_LIST[pathInd] + path.back().h_asl_m,
+            FREQ_MHZ_LIST[pathInd]/1000.0,
+            53,//delta N isn't tested here
+            Enumerations::PolarizationType::HorizontalPolarized,
+            0.1, //p_percent isn't tested here
+            3.0, //b0_percent isn't tested here
+            path.calcFracOverSea()
+        );
+
+        const double LBA = DiffractionModel.calcBullingtonLoss_dB(
+            path,
+            HTS_LIST[pathInd] + path.front().h_asl_m,
+            HRS_LIST[pathInd] + path.back().h_asl_m,
+            m_effEarthRadius_km
+        );
+        
         //suggested tolerance 0.1 dB from Notes page of spreadsheet. 
         //Validation data uses 3e8 for speed of light, model uses 2.998e8
         EXPECT_NEAR(EXPECTED_LBA[pathInd],LBA,m_deltaBullingtonTolerance_dB);
@@ -156,17 +183,22 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSphericalEarthLossFirstTermTest
     
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
-        const PathProfile::Path p = m_profile_list[PATH_LIST[pathInd]-1];
-        const auto [height_eff_tx_amsl_m,height_eff_rx_amsl_m] = EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
-            p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
+        const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
+
+        const auto DiffractionModel = DiffractionLoss(
+            path, 
+            HTS_LIST[pathInd] + path.front().h_asl_m,
+            HRS_LIST[pathInd] + path.back().h_asl_m,
+            FREQ_MHZ_LIST[pathInd]/1000.0,
+            53,//delta N isn't tested here
+            Enumerations::PolarizationType::HorizontalPolarized,
+            0.1, //p_percent isn't tested here
+            3.0, //b0_percent isn't tested here
+            path.calcFracOverSea()
+        );
         
         //First term of spherical diffraction loss
-        const double FT = DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_dB(p.back().d_km-p.front().d_km, 
-            HTS_LIST[pathInd]+p.front().h_asl_m-height_eff_tx_amsl_m, //effective height relative to ground
-            HRS_LIST[pathInd]+p.back().h_asl_m-height_eff_rx_amsl_m,
-            m_effEarthRadius_km, 
-            FREQ_MHZ_LIST[pathInd]/1000.0,
-            0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
+        const double FT = DiffractionModel.calcSphericalEarthDiffraction_firstTerm_dB(m_effEarthRadius_km);
 
         //Expected First term is a sum of intermediate values
         const double EXPECTED_FT = -EXPECTED_FX[pathInd] - EXPECTED_GY1[pathInd] - EXPECTED_GY2[pathInd];
@@ -209,17 +241,22 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSphericalEarthLossTest){
 
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
-        const PathProfile::Path p = m_profile_list[PATH_LIST[pathInd]-1];
-        const auto [height_eff_tx_amsl_m,height_eff_rx_amsl_m] =  EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(
-            p,HTS_LIST[pathInd],HRS_LIST[pathInd]);
-        
-        const double LSPH = DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(p.back().d_km-p.front().d_km, 
-            HTS_LIST[pathInd]+p.front().h_asl_m-height_eff_tx_amsl_m, //effective height relative to ground
-            HRS_LIST[pathInd]+p.back().h_asl_m-height_eff_rx_amsl_m,
-            m_effEarthRadius_km, 
-            FREQ_MHZ_LIST[pathInd]/1000.0,
-            0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
+        const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
 
+        const auto DiffractionModel = DiffractionLoss(
+            path, 
+            HTS_LIST[pathInd] + path.front().h_asl_m,
+            HRS_LIST[pathInd] + path.back().h_asl_m,
+            FREQ_MHZ_LIST[pathInd]/1000.0,
+            53,//delta N isn't tested here
+            Enumerations::PolarizationType::HorizontalPolarized,
+            0.1, //p_percent isn't tested here
+            3.0, //b0_percent isn't tested here
+            path.calcFracOverSea()
+        );
+
+        const double LSPH = DiffractionModel.calcSphericalEarthDiffractionLoss_dB(m_effEarthRadius_km);
+        
         EXPECT_NEAR(EXPECTED_LSPH[pathInd],LSPH,m_deltaBullingtonTolerance_dB);
     }
 }
@@ -258,18 +295,99 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcDeltaBullingtonLossTest){
 
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
-        const PathProfile::Path p = m_profile_list[PATH_LIST[pathInd]-1];
-     
-        const double LOSS_VAL = DiffractionLoss::calcDeltaBullingtonLoss_dB(
-            p, 
-            HTS_LIST[pathInd],
-            HRS_LIST[pathInd],
-            m_effEarthRadius_km, 
+        const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
+        
+        const auto DiffractionModel = DiffractionLoss(
+            path, 
+            HTS_LIST[pathInd] + path.front().h_asl_m,
+            HRS_LIST[pathInd] + path.back().h_asl_m,
             FREQ_MHZ_LIST[pathInd]/1000.0,
-            0,Enumerations::PolarizationType::HorizontalPolarized); //Assume land, horizontal pol
+            53,//delta N isn't tested here
+            Enumerations::PolarizationType::HorizontalPolarized,
+            0.1, //p_percent isn't tested here
+            3.0, //b0_percent isn't tested here
+            path.calcFracOverSea()
+        );
 
+        const double LOSS_VAL = DiffractionModel.calcDeltaBullingtonLoss_dB(m_effEarthRadius_km);
+ 
         //suggested tolerance 0.1 dB from Notes page of spreadsheet. 
         //Validation data uses 3e8 for speed of light, model uses 2.998e8
         EXPECT_NEAR(EXPECTED_LOSS[pathInd],LOSS_VAL,m_deltaBullingtonTolerance_dB);
     }
 }
+
+TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSmoothEarthBullingtonLossTest){
+    // Arrange
+	const std::vector<int> PATH_LIST = {
+		1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,4,4,4
+	};
+    const std::vector<double> HTS_LIST = {
+        30,50,20,40,70,
+        30,50,20,40,70,
+        30,50,20,40,70,
+        30,50,20,40,70
+    };
+    const std::vector<double> HRS_LIST = {
+        30,10,20,50,5,
+        30,10,20,50,5,
+        30,10,20,50,5,
+        30,10,20,50,5
+    };
+    const std::vector<double> FREQ_MHZ_LIST = {
+        1000,2500,600,200,150,
+        1000,2500,600,200,150,
+        1000,2500,600,200,150,
+        1000,2500,600,200,150
+    };
+
+    //Loss predicted from the Delta-Bullington Model
+    const std::vector<double> EXPECTED_LOSS = {
+        13.74840484,18.5970601,15.79373777,11.50981857,14.93033347,
+        35.82816509,39.66871934,34.29503068,27.74009568,26.58559997,
+        0,0,0,0,6.17409081,
+        0,0,0,0,0
+    };
+
+    for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
+        //input effective antanna heights relative to ground, frequency in GHz
+        const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
+        const double FREQ_GHZ = FREQ_MHZ_LIST[pathInd]/1000.0; //ERROR things break if we use this expression directly. probably cuz everything is done by reference
+        const auto DiffractionModel = DiffractionLoss(
+            path, 
+            HTS_LIST[pathInd] + path.front().h_asl_m,
+            HRS_LIST[pathInd] + path.back().h_asl_m,
+            FREQ_GHZ,
+            53,//delta N isn't tested here
+            Enumerations::PolarizationType::HorizontalPolarized,
+            0.1, //p_percent isn't tested here
+            3.0, //b0_percent isn't tested here
+            path.calcFracOverSea()
+        );
+
+        //modified heights and zero profile
+        PathProfile::Path zeroHeightPath;
+        zeroHeightPath.clear();
+        for (auto point : path){
+            zeroHeightPath.push_back(PathProfile::ProfilePoint(point.d_km, 0.0));
+        }
+        //effective heights for smooth path
+        const auto [eff_height_itx_asl_m,eff_height_irx_asl_m] = 
+                DiffractionModel.calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m();
+        const double mod_height_tx_asl_m= HTS_LIST[pathInd] + path.front().h_asl_m- eff_height_itx_asl_m;
+        const double mod_height_rx_asl_m= HRS_LIST[pathInd] + path.back().h_asl_m- eff_height_irx_asl_m;
+
+        const double LBS = DiffractionModel.calcBullingtonLoss_dB(
+            zeroHeightPath,
+            mod_height_tx_asl_m,
+            mod_height_rx_asl_m,
+            m_effEarthRadius_km
+        );
+ 
+        //suggested tolerance 0.1 dB from Notes page of spreadsheet. 
+        //Validation data uses 3e8 for speed of light, model uses 2.998e8
+        EXPECT_NEAR(EXPECTED_LOSS[pathInd],LBS,m_deltaBullingtonTolerance_dB);
+    }
+}
+
+

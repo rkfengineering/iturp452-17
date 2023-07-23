@@ -27,14 +27,6 @@ namespace EffectiveEarth{
     /// @return Tx,Rx endpoint heights for the smooth-earth surface (amsl) (m)
     TxRxPair calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(const PathProfile::Path& path);
 
-    /// @brief Annex 2 Section 5.1.6.3 Calculates effective Antenna Heights for use in the smooth path Bullington Loss calculation
-    ///        in the Delta-Bullington model
-    /// @param path Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
-    /// @param height_tx_m      Tx antenna height above ground level (m)
-    /// @param height_rx_m      Rx antenna height above ground level (m)
-    /// @return Tx,Rx effective antenna heights for the diffraction model (amsl) (m)
-    TxRxPair calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m);
-
     /// @brief Annex 1 Attachment 2 Section 4,5 Calculating Antenna Horizon Elevation Angle and Horizon Distances
     /// @param path                 Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
     /// @param height_tx_asl_m      Tx Antenna height (asl_m)
@@ -53,18 +45,5 @@ namespace EffectiveEarth{
     /// @return Path Angular Distance parameter (mrad)
     double calcPathAngularDistance_mrad(const TxRxPair& elevationAngles_mrad, const double& dtot_km, const double& eff_radius_med_km);
 
-    /// @brief Annex 2 Section 5.1.6.4 Calculates effective Antenna Heights for use in the Anomolous Propagation model
-    /// @param path Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
-    /// @param height_tx_m      Tx antenna height above ground level (m)
-    /// @param height_rx_m      Rx antenna height above ground level (m)
-    /// @return Tx,Rx effective antenna heights for the ducting/layer reflection model (amsl) (m)
-    TxRxPair calcSmoothEarthTxRxHeights_DuctingModel_amsl_m(const PathProfile::Path& path, const double& height_tx_m, const double& height_rx_m);
-
-    /// @brief Annex 2 Section 5.1.6.4 Calculates maximum height of the terrain above the smooth-Earth 
-    ///        surface in the section of the path between, and including, the horizon points
-    /// @param path Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
-    /// @param horizonDists_km Horizon distance points from Tx and Rx (km)
-    /// @return Terrain Roughness Parameter (m)
-    double calcTerrainRoughness_m(const PathProfile::Path& path, TxRxPair horizonDists_km);
 }
 #endif /* EFFECTIVE_EARTH_H */

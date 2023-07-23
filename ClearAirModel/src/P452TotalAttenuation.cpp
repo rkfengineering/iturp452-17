@@ -12,7 +12,6 @@ double p452_TotalAttenuation::calcP452TotalAttenuation(const double& freq_GHz, c
     const double effEarthRadius_med_km = EffectiveEarth::calcMedianEffectiveRadius_km(deltaN);
     const double fracOverSea = path.calcFracOverSea();
     const double b0_percent = path.calcTimePercentBeta0(centerLatitude_deg);
-    const double longestInlandDistance_km = path.calcLongestContiguousInlandDistance_km();
 
     //Apply height gain model correction from clutter model
     const auto [mod_path, hg_height_tx_m, hg_height_rx_m, tx_clutterLoss_dB, rx_clutterLoss_dB] = 
@@ -36,9 +35,6 @@ double p452_TotalAttenuation::calcP452TotalAttenuation(const double& freq_GHz, c
     const auto [HorizonAngles, HorizonDistances] = HorizonVals;
     const auto [horizonDist_tx_km, horizonDist_rx_km] = HorizonDistances;
 
-    //TODO consider hiding these inside the functions associated with anomolous propagation
-    const auto eff_heights_ducting = EffectiveEarth::calcSmoothEarthTxRxHeights_DuctingModel_amsl_m(mod_path, hg_height_tx_m,hg_height_rx_m);
-    const double terrain_roughness = EffectiveEarth::calcTerrainRoughness_m(mod_path, HorizonDistances);
     //TODO move this into troposcatter section
     const double pathAngularDistance = EffectiveEarth::calcPathAngularDistance_mrad(HorizonAngles,d_tot_km,effEarthRadius_med_km);
 
@@ -60,32 +56,37 @@ double p452_TotalAttenuation::calcP452TotalAttenuation(const double& freq_GHz, c
     const double basicTransmissionLoss_b0_percent_dB = freeSpaceWithGasLoss_dB + calcMultipathFocusingCorrection_b0_dB;  
     
     //Delta Bullington Diffraction Loss calculations
-    const auto DiffractionResults = DiffractionLoss::calcDiffractionLoss_dB(mod_path,hg_height_tx_m, hg_height_rx_m,
-            freq_GHz,fracOverSea,p_percent,b0_percent,deltaN,pol);
+    const auto DiffractionModel = DiffractionLoss(
+        mod_path, height_tx_asl_m, height_rx_asl_m, freq_GHz, deltaN, pol, p_percent, b0_percent, fracOverSea
+    );
+    const double diffractionLoss_p_percent_dB = DiffractionModel.getDiffractionLoss_p_percent_dB();
     
-    //Equation 43 (Lbd50) diffraction loss not exceeded for 50 percent of time
-    const double medianDiffractionLoss_dB = freeSpaceWithGasLoss_dB + DiffractionResults.diff_loss_p50_dB;
-    //Equation 44 (Lbd) diffraction loss not exceeded for p percent of time
-    const double diffractionLoss_p_percent_dB = basicTransmissionLoss_p_percent_dB + DiffractionResults.diff_loss_p_dB;
+    //Equation 43 (Lbd50) basic loss with diffraction loss not exceeded for 50 percent of time
+    const double basicWithMedianDiffractionLoss_dB = freeSpaceWithGasLoss_dB + DiffractionModel.getDiffractionLoss_median_dB();
+    //Equation 44 (Lbd) basic loss with diffraction loss not exceeded for p percent of time
+    const double basicWithDiffractionLoss_p_percent_dB = basicTransmissionLoss_p_percent_dB + diffractionLoss_p_percent_dB;
 
     //Equation 60 Minimum basic transmission loss associated with LOS propagation and over-sea sub-path diffraction
-    double minLossWithOverSeaSubPathDiffraction_dB = basicTransmissionLoss_p_percent_dB + (1-fracOverSea)*DiffractionResults.diff_loss_p_dB;
+    double minLossWithOverSeaSubPathDiffraction_dB = basicTransmissionLoss_p_percent_dB + (1-fracOverSea)*diffractionLoss_p_percent_dB;
     if(p_percent>=b0_percent){
         //Diffraction Interpolation parameter
-        const double Fi = CalculationHelpers::inv_cum_norm(p_percent/100.0)/CalculationHelpers::inv_cum_norm(b0_percent/100.0);
-        minLossWithOverSeaSubPathDiffraction_dB = medianDiffractionLoss_dB 
-                                + (basicTransmissionLoss_b0_percent_dB + (1-fracOverSea)*DiffractionResults.diff_loss_p_dB)*Fi;
+        const double diffractionInterpolationParameter = 
+                    CalculationHelpers::inv_cum_norm(p_percent/100.0)/CalculationHelpers::inv_cum_norm(b0_percent/100.0);
+                    
+        minLossWithOverSeaSubPathDiffraction_dB = MathHelpers::interpolate1D(
+                basicWithMedianDiffractionLoss_dB, 
+                basicTransmissionLoss_b0_percent_dB + (1-fracOverSea)*diffractionLoss_p_percent_dB,
+                diffractionInterpolationParameter
+        );
     }
 
     //Anomolous Propagation Calculations (Ducting and Layer Reflection)
     //TODO figure out a better way to handle inputs/where to put what calculations
-    const double fixed_anomolous = AnomolousProp::calcFixedCouplingLoss_helper_dB(freq_GHz,HorizonVals,dist_coast_tx_km,dist_coast_rx_km,
-            height_tx_asl_m, height_rx_asl_m, fracOverSea);
-    const double time_anomolous = AnomolousProp::calcTimePercentageAndAngularDistanceLoss_helper_dB(d_tot_km,freq_GHz,HorizonVals,effEarthRadius_med_km,
-            eff_heights_ducting, terrain_roughness, longestInlandDistance_km, p_percent, b0_percent);
-    //this function just calculates the gas component and adds it with the other two inputs
-    const double AnomolousPropagationLoss_dB = AnomolousProp::calcAnomolousPropLoss(d_tot_km, freq_GHz, height_tx_asl_m, height_rx_asl_m, fracOverSea, temp_K, dryPressure_hPa,
-            fixed_anomolous, time_anomolous);
+    const auto AnomolousPropModel = AnomolousProp(mod_path, freq_GHz, height_tx_asl_m, height_rx_asl_m,
+        temp_K, dryPressure_hPa, dist_coast_tx_km, dist_coast_rx_km, p_percent,
+        b0_percent, effEarthRadius_med_km, HorizonVals, fracOverSea);
+
+    const double AnomolousPropagationLoss_dB = AnomolousPropModel.getAnomolousPropLoss_dB();
 
     //Equation 61 (Lminbap)
     constexpr double eta = 2.5; //constant parameter
@@ -93,10 +94,10 @@ double p452_TotalAttenuation::calcP452TotalAttenuation(const double& freq_GHz, c
                 eta*std::log(std::exp(AnomolousPropagationLoss_dB/eta)+std::exp(basicTransmissionLoss_p_percent_dB/eta));
 
     //Equation 62 (Lbda)
-    double diffractionAndAnomolousPropagationLoss_dB = diffractionLoss_p_percent_dB;
-    if(minLossWithAnomolousPropagation_dB <= diffractionLoss_p_percent_dB){
+    double diffractionAndAnomolousPropagationLoss_dB = basicWithDiffractionLoss_p_percent_dB;
+    if(minLossWithAnomolousPropagation_dB <= basicWithDiffractionLoss_p_percent_dB){
         diffractionAndAnomolousPropagationLoss_dB = MathHelpers::interpolate1D(minLossWithAnomolousPropagation_dB,
-                                                    diffractionLoss_p_percent_dB,pathBlendingInterpolationParameter);
+                                                    basicWithDiffractionLoss_p_percent_dB,pathBlendingInterpolationParameter);
     }
 
     //Equation 63 (Lbam)

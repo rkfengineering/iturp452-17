@@ -37,55 +37,6 @@ EffectiveEarth::TxRxPair EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_
     return EffectiveEarth::TxRxPair{height_tx_amsl_m,height_rx_amsl_m};
 }
 
-EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m(const PathProfile::Path& path, 
-        const double& height_tx_m, const double& height_rx_m){
-
-    const double d_tot = path.back().d_km; //assume distances start at 0
-    const double height_tx_m_amsl = path.front().h_asl_m + height_tx_m;
-    const double height_rx_m_amsl = path.back().h_asl_m + height_rx_m;
-
-    //Section 5.1.6.3
-
-    //Highest Obstruction height (m)
-    double height_obs_max = std::numeric_limits<double>::lowest();
-    //Horizon elevation angles (mrad)
-    double alpha_obs_t_max = std::numeric_limits<double>::lowest();
-    double alpha_obs_r_max = std::numeric_limits<double>::lowest();
-
-    //get max values for intermediate obstruction
-    double height_val,delta_d;
-    PathProfile::ProfilePoint point;
-    for (auto cit = path.begin()+1; cit<path.end()-1; ++cit){
-        point = *cit;
-        delta_d = d_tot-point.d_km;
-        height_val = point.h_asl_m-(height_tx_m_amsl*delta_d+height_rx_m_amsl*point.d_km)/d_tot; //Eq 165d
-        height_obs_max = std::max(height_obs_max, height_val);//Eq 165a
-        alpha_obs_t_max = std::max(alpha_obs_t_max,height_val/point.d_km);             //Eq 165b
-        alpha_obs_r_max = std::max(alpha_obs_r_max,height_val/delta_d);      //Eq 165c
-    }
-
-    //Equations 166a, 166b
-    //Tx,Rx heights from a least squares smooth path
-    auto [height_smooth_tx_amsl_m,height_smooth_rx_amsl_m] = 
-            EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(path);
-
-    //Modify heights to compensate for obstructions
-    if(height_obs_max>0){
-        const double v1 = alpha_obs_t_max+alpha_obs_r_max;
-        const double gt = alpha_obs_t_max/v1; //Eq 166e
-        const double gr = alpha_obs_r_max/v1; //Eq 166f
-
-        height_smooth_tx_amsl_m-=height_obs_max*gt; //Eq 166c
-        height_smooth_rx_amsl_m-=height_obs_max*gr; //Eq 166d
-    }
-
-    //Limit effective antenna heights to be above actual terrain ground height
-    double eff_height_tx_amsl_m = std::min(path.front().h_asl_m, height_smooth_tx_amsl_m); //Eq 167 a,b
-    double eff_height_rx_amsl_m = std::min(path.back().h_asl_m, height_smooth_rx_amsl_m); //Eq 167 c,d
-    
-    return EffectiveEarth::TxRxPair{eff_height_tx_amsl_m,eff_height_rx_amsl_m};
-}
-
 EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::calcHorizonAnglesAndDistances(const PathProfile::Path& path,
             const double& height_tx_asl_m, const double& height_rx_asl_m, const double& eff_radius_med_km, const double& freq_GHz){
 
@@ -202,54 +153,6 @@ double EffectiveEarth::calcPathAngularDistance_mrad(const EffectiveEarth::TxRxPa
     const auto [txHorizonAngle_mrad, rxHorizonAngle_mrad] = elevationAngles_mrad;
     //Equation 159
     return 1e3*dtot_km/eff_radius_med_km + txHorizonAngle_mrad + rxHorizonAngle_mrad;
-}
-
-EffectiveEarth::TxRxPair EffectiveEarth::calcSmoothEarthTxRxHeights_DuctingModel_amsl_m(const PathProfile::Path& path, 
-        const double& height_tx_m, const double& height_rx_m){
-
-    //Equations 166a, 166b
-    //Tx,Rx heights from a least squares smooth path
-    auto [height_smooth_tx_amsl_m,height_smooth_rx_amsl_m] = 
-            EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(path);
-    //Equation 168 terminal heights must be above ground level
-    height_smooth_tx_amsl_m = std::min(height_smooth_tx_amsl_m, path.front().h_asl_m);
-    height_smooth_rx_amsl_m = std::min(height_smooth_rx_amsl_m, path.back().h_asl_m);
-
-    //Equation 170
-    const double eff_height_tx_m = height_tx_m + path.front().h_asl_m - height_smooth_tx_amsl_m;
-    const double eff_height_rx_m = height_rx_m + path.back().h_asl_m - height_smooth_rx_amsl_m;
-
-    return EffectiveEarth::TxRxPair(eff_height_tx_m,eff_height_rx_m);
-}
-
-//TODO refactor code to make more efficient. We don't have to call the helper function this often
-double EffectiveEarth::calcTerrainRoughness_m(const PathProfile::Path& path, TxRxPair horizonDists_km){
-    //Equations 166a, 166b
-    //Tx,Rx heights from a least squares smooth path
-    auto [height_smooth_tx_amsl_m,height_smooth_rx_amsl_m] = 
-            EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(path);
-    //Equation 168 terminal heights must be above ground level
-    height_smooth_tx_amsl_m = std::min(height_smooth_tx_amsl_m, path.front().h_asl_m);
-    height_smooth_rx_amsl_m = std::min(height_smooth_rx_amsl_m, path.back().h_asl_m);
-
-    //smooth earth surface slope
-    //assume path starts at 0 km 
-    const double slope = (height_smooth_rx_amsl_m-height_smooth_tx_amsl_m)/path.back().d_km;
-
-    //only evaluate section between horizon points
-    const auto [tx_horizon_km, rx_horizon_from_rx] = horizonDists_km;
-    const double rx_horizon_km = path.back().d_km -rx_horizon_from_rx;
-
-    //Equation 171 calculate terrain roughness above smooth earth path
-    double terrainRoughness_m = 0; //the parameter can never be negative 
-    double heightAboveSmoothPath;
-    for(auto point : path){
-        if(point.d_km>=tx_horizon_km && point.d_km<=rx_horizon_km){
-            heightAboveSmoothPath = point.h_asl_m-(height_smooth_tx_amsl_m + slope*point.d_km);
-            terrainRoughness_m = std::max(terrainRoughness_m, heightAboveSmoothPath);
-        }
-    }
-    return terrainRoughness_m;
 }
 
 

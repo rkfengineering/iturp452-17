@@ -26,6 +26,8 @@ DataGrid2::DataGrid2(const std::string& sourceFilePath, const double& resolution
 	const double EXPECTED_NUM_ROWS = std::round(abs(_endLat_deg - _startLat_deg) / _resolution_deg) + 1;
 
 	try {
+
+        //move to function that reads raw data and populates datagrid
         std::ifstream file;
         file.open(sourceFilePath);
         std::string line,value;
@@ -40,7 +42,7 @@ DataGrid2::DataGrid2(const std::string& sourceFilePath, const double& resolution
                         row.push_back(std::stod(value));
                     }
                 }
-                 //push back vector to _dataGrid
+                //push back vector to _dataGrid
                 if(!row.empty()){
                     _dataGrid.push_back(row);
                 }

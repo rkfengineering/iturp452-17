@@ -8,10 +8,6 @@
 
 #include <filesystem>
 
-namespace {
-    const std::string kClearAirDataRelativePath {"tests/test_paths"};
-}
-
 class DeltaBullingtonTests : public testing::Test {
 protected:
 	DeltaBullingtonTests() {}
@@ -21,7 +17,7 @@ protected:
 	// Can be omitted if not needed.
 	static void SetUpTestCase() {
         std::filesystem::path clearAirDataFullPath = CMAKE_CLEARAIR_SRC_DIR;
-        clearAirDataFullPath /= kClearAirDataRelativePath;
+        clearAirDataFullPath /= std::filesystem::path("tests/test_paths");
 
         m_profile_list = {
             PathProfile::Path(clearAirDataFullPath/std::filesystem::path("dbull_path1.csv")),
@@ -51,6 +47,7 @@ protected:
     //Validation data uses 3e8 for speed of light
     //this implementation uses a slightly different constant
     const double m_deltaBullingtonTolerance_dB = 0.1;
+
 };
 
 #endif /* DELTA_BULLINGTON_TESTS_H */
