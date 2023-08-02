@@ -31,7 +31,7 @@ void ClearAirModel::ClutterLoss::calcClutterLoss_dB(){
 
     //make sure clutter model is applicable (clutter higher than antenna height)
     if(m_tx_clutter_height_m>m_height_tx_m){
-        const double Ffc = 0.25+0.374*(1+std::tanh(7.5*(m_freq_GHz-0.5))); //Eq 57a
+        const double Ffc = 0.25+0.375*(1+std::tanh(7.5*(m_freq_GHz-0.5))); //Eq 57a
         tx_clutterLoss_dB = 10.25*Ffc*std::exp(-m_tx_clutter_dist_km)*(1-std::tanh(6*(m_height_tx_m/m_tx_clutter_height_m-0.625)))-0.33; //Eq 57
 
         //path length correction
@@ -48,7 +48,7 @@ void ClearAirModel::ClutterLoss::calcClutterLoss_dB(){
     }
 
     if(m_rx_clutter_height_m>m_height_rx_m){
-        const double Ffc = 0.25+0.374*(1+std::tanh(7.5*(m_freq_GHz-0.5))); //Eq 57a
+        const double Ffc = 0.25+0.375*(1+std::tanh(7.5*(m_freq_GHz-0.5))); //Eq 57a
         rx_clutterLoss_dB = 10.25*Ffc*std::exp(-m_rx_clutter_dist_km)*(1-std::tanh(6*(m_height_rx_m/m_rx_clutter_height_m-0.625)))-0.33; //Eq 57
 
         //path length correction

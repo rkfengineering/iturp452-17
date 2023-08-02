@@ -21,11 +21,9 @@ ClearAirModel::AnomolousProp::AnomolousProp(const PathProfile::Path& path, const
     m_effHeights_ducting_m = calcSmoothEarthTxRxHeights_DuctingModel_amsl_m();
     m_terrainRoughness_m = calcTerrainRoughness_m();
     m_longestContiguousInlandDistance_km = m_path.calcLongestContiguousInlandDistance_km();
-
     //second stage of calculations
     m_fixedCouplingLoss_dB = calcFixedCouplingLoss_helper_dB();
     m_timePercentageAndAngularDistanceLoss_dB = calcTimePercentageAndAngularDistanceLoss_helper_dB();
-
     //Final stage of calculations
     m_anomolousPropLoss_dB = calcAnomolousPropLoss();
 }
@@ -90,7 +88,6 @@ double ClearAirModel::AnomolousProp::calcTimePercentageAndAngularDistanceLoss_he
     const auto [horizonDist_tx_km, horizonDist_rx_km] = HorizonDistances;
     const double corrected_horizonElevation_tx_mrad = std::min(horizonElevation_tx_mrad, 0.1*horizonDist_tx_km);
     const double corrected_horizonElevation_rx_mrad = std::min(horizonElevation_rx_mrad, 0.1*horizonDist_rx_km);
-
     const double m_pathAngularDistance_mrad = ClearAirModelHelpers::calcPathAngularDistance_mrad(
         ClearAirModel::TxRxPair{corrected_horizonElevation_tx_mrad, corrected_horizonElevation_rx_mrad},
         m_d_tot_km,
@@ -107,7 +104,7 @@ double ClearAirModel::AnomolousProp::calcTimePercentageAndAngularDistanceLoss_he
     const auto [eff_height_tx_m, eff_height_rx_m] = m_effHeights_ducting_m;
     //Equation 55 correction for m_path geometry (mu2)
     const double val1 = MathHelpers::simpleSquare(m_d_tot_km/(std::sqrt(eff_height_tx_m)+std::sqrt(eff_height_rx_m)));
-    const double m_pathGeometryCorrection = std::pow(500.0/m_eff_radius_med_km * val1, alpha);
+    const double m_pathGeometryCorrection = std::min(std::pow(500.0/m_eff_radius_med_km * val1, alpha),1.0);
 
     //Equation 56a Distance beyond horizons of tx and rx, value is limited to at most 40 km
     const double dI = std::min(m_d_tot_km-horizonDist_tx_km-horizonDist_rx_km, 40.0);
@@ -127,7 +124,7 @@ double ClearAirModel::AnomolousProp::calcTimePercentageAndAngularDistanceLoss_he
     //Equation 53
     const double timePercentageVariabilityLoss_dB = -12.0 + (1.2 + 3.7e-3*m_d_tot_km)* std::log10(m_p_percent/beta_percent)
                     + 12.0 * std::pow(m_p_percent/beta_percent, gamma);
-   
+
     //Equation 50
     return specificAttenuation_dB_per_mrad * m_pathAngularDistance_mrad + timePercentageVariabilityLoss_dB;
 }

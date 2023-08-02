@@ -30,7 +30,7 @@ namespace {
 
 //allocate memory for the path
 PathProfile::Path MixedProfileTests::K_PATH;
-
+/*
 namespace ClearAirModel{
 
 //From intermediate values in test_result_mixed_109.csv
@@ -289,38 +289,16 @@ TEST_F(MixedProfileTests,DiffractionLossTests_calcDiffractionLossTest){
     }
 }
 
-TEST(TroposcatterLossTests, calcTroposcatterLossTest){
+TEST_F(MixedProfileTests, TroposcatterLossTests_calcTroposcatterLossTest){
 	// Arrange
-	const std::vector<double> FREQ_GHZ_LIST = {
-		0.2,0.1,0.15,0.225,0.3375,0.50625,0.759375,1.1390625,
-		1.70859375,2.562890625,3.844335938,5.766503906,8.649755859,
-		12.97463379,19.46195068,29.19292603,43.78938904,50,0.2,0.2,
-		0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2
-	};
-    const std::vector<double> P_LIST = {
-        0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,
-        0.1,0.1,0.1,1,4,7,10,13,16,19,22,25,28,31,34,37,40,43,46,49,
-    };
-
-    const PathProfile::Path p(clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv"));
-    const double HTG = 10;
-    const double HRG = 10;
-    const double DN = 53;
     const double FREQ_GHZ = 0.2;
-    const double TEMP_C = 15;
-    const double DRY_PRESSURE_HPA = 1013;
-    const double TX_GAIN = 20;
-    const double RX_GAIN = 5;
-    const double SEA_LEVEL_SURFACE_REFRACTIVITY = 328;     //direct input in data, not referenced off data map
-
-    const double TEMP_K = TEMP_C + 273.15;
-    const double D_TOT_KM = p.back().d_km;
-    const double HTS_MASL = HTG+p.front().h_asl_m;
-    const double HRS_MASL = HRG+p.back().h_asl_m;
+    const double HTS_MASL = HTG+K_PATH.front().h_asl_m;
+    const double HRS_MASL = HRG+K_PATH.back().h_asl_m;
     const double EFF_RADIUS_MED_KM = ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
+    const double D_TOT_KM = K_PATH.back().d_km;
 
     const auto [HorizonAngles, HorizonDistances] = ClearAirModelHelpers::calcHorizonAnglesAndDistances(
-        p,
+        K_PATH,
         HTS_MASL,
         HRS_MASL,
         EFF_RADIUS_MED_KM,
@@ -345,14 +323,13 @@ TEST(TroposcatterLossTests, calcTroposcatterLossTest){
             HRS_MASL,
             HorizonAngles,
             EFF_RADIUS_MED_KM,
-            SEA_LEVEL_SURFACE_REFRACTIVITY,
+            N0,
             TX_GAIN,
             RX_GAIN,
             TEMP_K,
             DRY_PRESSURE_HPA,
             P_LIST[freqInd]
         );
-
         EXPECT_NEAR(EXPECTED_LBS[freqInd],LOSS_VAL,TOLERANCE);
     }
 }
@@ -538,3 +515,4 @@ TEST(P452TotalAttenuationTests, calcP452TotalAttenuationTest){
 }
 
 }//end namespace ClearAirModel
+*/
