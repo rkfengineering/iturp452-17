@@ -1,5 +1,5 @@
-file(GLOB "TEST_SOURCES" *.cpp)
-file(GLOB "TEST_HEADERS" *.h)
+file(GLOB "TEST_SOURCES" *.cpp clutter_profile_tests/*.cpp)
+file(GLOB "TEST_HEADERS" *.h clutter_profile_tests/*.h)
 
 add_executable(
     ClearAirModel_test

@@ -30,7 +30,7 @@ namespace {
 
 //allocate memory for the path
 PathProfile::Path MixedProfileTests::K_PATH;
-/*
+
 namespace ClearAirModel{
 
 //From intermediate values in test_result_mixed_109.csv
@@ -515,4 +515,3 @@ TEST(P452TotalAttenuationTests, calcP452TotalAttenuationTest){
 }
 
 }//end namespace ClearAirModel
-*/

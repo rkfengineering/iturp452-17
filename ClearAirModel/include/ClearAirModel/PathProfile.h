@@ -5,11 +5,9 @@
 #include <string>
 
 namespace PathProfile{
-    /// <summary>
 	/// Specifies zone type of a profile point
 	/// First value is set to 1 to require that this value is set intentionally (default value 0 has no meaning).
     /// WARNING the validation data test profile column labels contradict themselves. Assume A1 and zone type 1 both mean coastal land
-	/// </summary>
 	enum ZoneType {
 		CoastalLand = 1,
 		Inland = 2,
@@ -36,16 +34,18 @@ namespace PathProfile{
         Path();
         Path(std::string csvPath);
 
-        /// @brief Get the fraction of the total path that has the sea zone type
+        /// @brief Calculate the fraction of the total path that has the sea zone type
         /// @return Fraction of the path over sea (omega in P452-17)
         double calcFracOverSea() const;
 
-        /// @brief Get the time percentage for which refractive index lapse-rates exceeding 100 N-units/km 
+        /// @brief Calculate the time percentage for which refractive index lapse-rates exceeding 100 N-units/km 
         /// can be expected in the first 100m of the lower atmosphere
         /// @param centerLatitude_deg The latitude (deg) of the path center point
         /// @return Time percentage beta0 (%)
         double calcTimePercentBeta0(const double& centerLatitude_deg) const;
 
+        /// @brief Calculate the longest contiguous inland distance in the profile path
+        /// @return the longest contiguous inland distance (km)
         double calcLongestContiguousInlandDistance_km() const;
     };
 }

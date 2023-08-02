@@ -4,13 +4,11 @@
 #include "PathProfile.h"
 
 namespace ClearAirModel{
-
     //Pair for returning tx (first) and rx (second) values
     using TxRxPair = std::pair<double,double>;
 
     //Pair for returning horizon angles(mrad) (first) and horizon distances(km) (second)
     using HorizonAnglesAndDistances = std::pair<TxRxPair,TxRxPair>;
-
 }
 
 namespace ClearAirModel::ClearAirModelHelpers{

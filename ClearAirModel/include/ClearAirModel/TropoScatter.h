@@ -6,6 +6,8 @@
 #include "DataGrid2.h"
 #include "Common/GeodeticCoord.h"
 
+//TODO figure out if this should be a class
+
 //Section 4.3 Emperical Tropospheric scatter model including secondary propagation effects
 // suitable for 0.001% <= p <= 50% (ITU-R P452-17 Section 4.3 NOTE 1)
 namespace ClearAirModel::TropoScatter {

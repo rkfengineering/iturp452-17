@@ -35,6 +35,7 @@ std::vector<std::vector<double>> DataGrid2::readGridData(const std::string& sour
 }
 
 // NOTE: Assumes default start/end values for latitude/longitude bounds
+// The extra column padding is needed
 DataGrid2::DataGrid2(const std::string& sourceFilePath, const double& resolution_deg,
 			const double& beginLat_deg, const double& endLat_deg, 
 			const double& beginLon_deg, const double& endLon_deg) 

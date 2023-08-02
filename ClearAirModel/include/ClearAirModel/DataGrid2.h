@@ -27,8 +27,6 @@ public:
                 const double& beginLat_deg = 90.0, const double& endLat_deg = -90.0, 
                 const double& beginLon_deg = 0.0, const double& endLon_deg = 360.0);
 
-    std::vector<std::vector<double>> readGridData(const std::string& sourceFilePath) const;
-
     /// @brief Calculates the bounding-box of coordinates on this data grid which contain the given location
     /// @param location Location which must be bounded within this data grid
     /// @return Bounding-box containing the given location
@@ -65,6 +63,9 @@ private:
     /// 2D matrix containing data
     /// Rows = latitude, Columns = longitude
     std::vector<std::vector<double>> _dataGrid;
+    
+    //Read data file and returns the data in a 2D matrix
+    std::vector<std::vector<double>> readGridData(const std::string& sourceFilePath) const;
 };
 
 #endif /* DATA_GRID_2_H */

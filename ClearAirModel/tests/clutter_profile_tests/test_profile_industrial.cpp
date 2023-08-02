@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "test_profile_dense_urban.h"
+#include "test_profile_industrial.h"
 #include "ClearAirModel/ClearAirModelHelpers.h"
 #include "ClearAirModel/BasicProp.h"
 #include "ClearAirModel/DiffractionLoss.h"
@@ -29,71 +29,72 @@ namespace {
 }
 
 //allocate memory for the path
-PathProfile::Path UrbanProfileTests::K_PATH;
+PathProfile::Path IndustrialProfileTests::K_PATH;
 
 //test height gain model heights
-TEST_F(UrbanProfileTests, ClutterLossTests_calcHeightGainModelHeightsTest){
+TEST_F(IndustrialProfileTests, ClutterLossTests_calcHeightGainModelHeightsTest){
     const double FREQ_GHZ = 2;
     const auto ClutterModel = ClearAirModel::ClutterLoss(FREQ_GHZ, K_PATH, 
         HTG, HRG, TX_CLUTTER_TYPE, RX_CLUTTER_TYPE);
 
     const auto HEIGHT_GAIN_RESULTS = ClutterModel.getHeightGainModelHeights_m();
-    const double EXPECTED_HTS = 25.0;
-    const double EXPECTED_HRS = 25.0;
-    EXPECT_NEAR(EXPECTED_HTS,HEIGHT_GAIN_RESULTS.first,TOLERANCE_STRICT);
-    EXPECT_NEAR(EXPECTED_HRS,HEIGHT_GAIN_RESULTS.second,TOLERANCE_STRICT);
+    const auto MOD_PATH = ClutterModel.getModifiedPath();
+    const double EXPECTED_HTS = 20.0;
+    const double EXPECTED_HRS = 20.0;
+    EXPECT_NEAR(EXPECTED_HTS,HEIGHT_GAIN_RESULTS.first + MOD_PATH.front().h_asl_m,TOLERANCE_STRICT);
+    EXPECT_NEAR(EXPECTED_HRS,HEIGHT_GAIN_RESULTS.second+ MOD_PATH.back().h_asl_m,TOLERANCE_STRICT);
 }
-TEST_F(UrbanProfileTests, calcTimePercentBeta0Test){
+TEST_F(IndustrialProfileTests, calcTimePercentBeta0Test){
 	// Arrange
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double EXPECTED_B0 = 7.005407788;
 	EXPECT_NEAR(EXPECTED_B0,B0_PERCENT,TOLERANCE_STRICT);
 }
-TEST_F(UrbanProfileTests, calcFracOverSeaTest){
+TEST_F(IndustrialProfileTests, calcFracOverSeaTest){
 	// Arrange
     const double VAL_FRAC= K_PATH.calcFracOverSea();
     const double EXPECTED_FRAC = 0.0;
 	EXPECT_NEAR(EXPECTED_FRAC,VAL_FRAC,TOLERANCE_STRICT);
 }
-TEST_F(UrbanProfileTests, calcLongestContiguousInlandDistanceTest){
+TEST_F(IndustrialProfileTests, calcLongestContiguousInlandDistanceTest){
 	// Arrange
     const double VAL_DIST= K_PATH.calcLongestContiguousInlandDistance_km();
     const double EXPECTED_DIST = 5.0;
 	EXPECT_NEAR(EXPECTED_DIST,VAL_DIST,TOLERANCE_STRICT);
 }
 
-TEST_F(UrbanProfileTests, BasicPropTests_calcPathLossWithGasAndMultipathTest){
+TEST_F(IndustrialProfileTests, BasicPropTests_calcPathLossWithGasAndMultipathTest){
 	// Arrange
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double EFF_RADIUS_MED_KM = ClearAirModel::ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
     const double SEA_FRAC = K_PATH.calcFracOverSea();
 
     const std::vector<double> EXPECTED_LBFSG = {
-        112.3645435,86.31063663,89.83364018,93.35784871,96.88398361,
-        100.4122309,103.9413382,107.4693298,110.9954367,114.520397,
-        118.0457246,121.5738574,125.1102715,128.6751788,132.5434313,
-        136.0902568,139.9960989,142.2148343,112.3645435,112.3645435,
-        112.3645435,112.3645435,112.3645435,112.3645435,112.3645435,
-        112.3645435,112.3645435,112.3645435,112.3645435,112.3645435,
-        112.3645435,112.3645435,112.3645435,112.3645435,112.3645435
+        112.2584165,86.20491256,89.72790186,93.25208156,96.77816432,
+        100.306334,103.8353531,107.3632701,110.8893253,114.4142477,
+        117.9395329,121.4675893,125.003827,128.5682131,132.432275,
+        135.978798,139.8799948,142.0858264,112.2584165,112.2584165,
+        112.2584165,112.2584165,112.2584165,112.2584165,112.2584165,
+        112.2584165,112.2584165,112.2584165,112.2584165,112.2584165,
+        112.2584165,112.2584165,112.2584165,112.2584165,112.2584165
     };
     const std::vector<double> EXPECTED_LB0P = {
-        112.355623,86.30171618,89.82471973,93.34892826,96.87506316,
-        100.4033105,103.9324177,107.4604093,110.9865163,114.5114766,
-        118.0368042,121.5649369,125.1013511,128.6662584,132.5345109,
-        136.0813364,139.9871785,142.2059138,110.6372011,111.2493154,
-        111.4964121,111.6539009,111.769747,111.8614296,111.9373096,
-        112.0020419,112.0584864,112.1085263,112.1534682,112.1942553,
-        112.2315914,112.2660151,112.2979481,112.3277266,112.355623
+        112.2495797,86.19607572,89.71906501,93.24324471,96.76932748,
+        100.2974971,103.8265163,107.3544333,110.8804885,114.4054108,
+        117.930696,121.4587525,124.9949902,128.5593763,132.4234382,
+        135.9699612,139.8711579,142.0769895,110.5472625,111.1536401,
+        111.3984211,111.5544339,111.6691944,111.7600177,111.8351866,
+        111.8993122,111.9552277,112.0047987,112.0493194,112.0897243,
+        112.1267104,112.1608115,112.1924452,112.2219446,112.2495797
     };
     const std::vector<double> EXPECTED_LB0B = {
-        111.4967531,85.44284621,88.96584976,92.49005829,96.01619319,
-        99.5444405,103.0735478,106.6015394,110.1276463,113.6526066,
-        117.1779342,120.706067,124.2424811,127.8073884,131.6756409,
-        135.2224664,139.1283085,141.3470439,111.4967531,111.4967531,
-        111.4967531,111.4967531,111.4967531,111.4967531,111.4967531,
-        111.4967531,111.4967531,111.4967531,111.4967531,111.4967531,
-        111.4967531,111.4967531,111.4967531,111.4967531,111.4967531
+        111.3987589,85.34525495,88.86824425,92.39242394,95.91850671,
+        99.44667634,102.9756955,106.5036125,110.0296677,113.55459,
+        117.0798752,120.6079317,124.1441694,127.7085555,131.5726174,
+        135.1191404,139.0203372,141.2261688,111.3987589,111.3987589,
+        111.3987589,111.3987589,111.3987589,111.3987589,111.3987589,
+        111.3987589,111.3987589,111.3987589,111.3987589,111.3987589,
+        111.3987589,111.3987589,111.3987589,111.3987589,111.3987589
     };
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
@@ -122,18 +123,18 @@ TEST_F(UrbanProfileTests, BasicPropTests_calcPathLossWithGasAndMultipathTest){
     }
 }
 
-TEST_F(UrbanProfileTests, DiffractionLossTests_calcDiffractionLossTest){
+TEST_F(IndustrialProfileTests, DiffractionLossTests_calcDiffractionLossTest){
 	// Arrange
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double SEA_FRAC = K_PATH.calcFracOverSea();
 
     const std::vector<double> EXPECTED_LD50 = {
-        0,5.20387644,1.85407598,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        0,8.68406638,5.45980554,2.13819017,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
     };
     const std::vector<double> EXPECTED_LDP = {
-        0,5.20231645,1.85229434,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+        0,8.68240951,5.4579253,2.13604177,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
     };
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
@@ -165,7 +166,7 @@ TEST_F(UrbanProfileTests, DiffractionLossTests_calcDiffractionLossTest){
     }
 }
 
-TEST_F(UrbanProfileTests, TroposcatterLossTests_calcTroposcatterLossTest){
+TEST_F(IndustrialProfileTests, TroposcatterLossTests_calcTroposcatterLossTest){
 	// Arrange
     const double FREQ_GHZ = 2.0;
     const double EFF_RADIUS_MED_KM = ClearAirModel::ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
@@ -188,13 +189,13 @@ TEST_F(UrbanProfileTests, TroposcatterLossTests_calcTroposcatterLossTest){
 
     //basic transmission loss from troposcatter
     const std::vector<double> EXPECTED_LBS = {
-        162.1036844,125.3137439,130.7851872,136.1027953,141.267281,
-        146.2788067,151.1360896,155.8371343,160.3811185,164.768604,
-        169.0006684,173.0786979,177.0053073,180.7893087,184.5438056,
-        188.0280764,191.659363,193.6953663,147.8336159,151.6950019,
-        153.4279302,154.6102339,155.5308342,156.298209,156.9656538,
-        157.5637353,158.1119803,158.6240117,159.1101791,159.5791431,
-        160.0390991,160.4991711,160.9719518,161.4808558,162.1036844
+        161.9975672,125.2080198,130.6794488,135.997028,141.1614617,
+        146.17291,151.0301061,155.7310783,160.2750146,164.6624697,
+        168.8945084,172.9724999,176.8990276,180.6827969,184.4355431,
+        187.9194567,191.5467319,193.5707559,147.7274988,151.5888847,
+        153.321813,154.5041167,155.4247171,156.1920918,156.8595366,
+        157.4576181,158.0058631,158.5178945,159.0040619,159.4730259,
+        159.9329819,160.3930539,160.8658346,161.3747386,161.9975672
     };
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
@@ -217,8 +218,8 @@ TEST_F(UrbanProfileTests, TroposcatterLossTests_calcTroposcatterLossTest){
     }
 }
 //check horizon elevation angle and distance calculations using mixed terrain path
-//transhorizon path tested
-TEST_F(UrbanProfileTests, calcHorizonAnglesAndDistances_LineOfSightTest){
+//line of sight path tested
+TEST_F(IndustrialProfileTests, calcHorizonAnglesAndDistances_LineOfSightTest){
     const double FREQ_GHZ = 2.0;
     const double EFF_RADIUS_MED_KM = ClearAirModel::ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
 
@@ -229,10 +230,10 @@ TEST_F(UrbanProfileTests, calcHorizonAnglesAndDistances_LineOfSightTest){
     const double height_tx_asl_m = hg_height_tx_m + mod_path.front().h_asl_m;
     const double height_rx_asl_m = hg_height_rx_m + mod_path.back().h_asl_m;
 
-    const double EXPECTED_THETA_T = -0.257856304;
-    const double EXPECTED_THETA_R = -0.257856304;
-    const double EXPECTED_DLT = 2.48;
-    const double EXPECTED_DLR = 2.48;
+    const double EXPECTED_THETA_T = -0.254737074;
+    const double EXPECTED_THETA_R = -0.254737074;
+    const double EXPECTED_DLT = 2.45;
+    const double EXPECTED_DLR = 2.45;
 
     const auto [HorizonAngles, HorizonDistances] = ClearAirModel::ClearAirModelHelpers::calcHorizonAnglesAndDistances(
         mod_path,
@@ -250,7 +251,7 @@ TEST_F(UrbanProfileTests, calcHorizonAnglesAndDistances_LineOfSightTest){
     EXPECT_NEAR(EXPECTED_DLR,horizonDist_rx_km,TOLERANCE_STRICT);
 }
 //no direct unit test for the helpers yet. they're all lumped together in this validation data check
-TEST_F(UrbanProfileTests, AnomolousProp_calcAnomolousPropLossTest){
+TEST_F(IndustrialProfileTests, AnomolousProp_calcAnomolousPropLossTest){
 
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double EFF_RADIUS_MED_KM = ClearAirModel::ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
@@ -258,13 +259,13 @@ TEST_F(UrbanProfileTests, AnomolousProp_calcAnomolousPropLossTest){
 
     //basic transmission loss from ducting/layer refraction
     const std::vector<double> EXPECTED_LBA = {
-        184.0711264,190.6172195,188.4464731,184.2972441,178.2643947,
-        172.1188138,175.6479211,179.1759127,182.7020197,186.2269799,
-        189.7523075,193.2804403,196.8168544,200.3817617,204.2500143,
-        207.7968397,211.7026818,213.9214172,111.3643993,117.2615588,
-        122.4055604,127.2849055,132.0091701,136.6257018,141.1604894,
-        145.6298011,150.0447121,154.4132163,158.7413383,163.033771,
-        167.2942673,171.5258927,175.7311961,179.9123281,184.0711264
+        183.9648729,190.511369,188.3406083,184.1913505,178.1584489,
+        172.0127904,175.5418095,179.0697265,182.5957817,186.1207041,
+        189.6459893,193.1740457,196.7102834,200.2746695,204.1387314,
+        207.6852545,211.5864512,213.7922828,111.2584583,117.1554841,
+        122.2994335,127.1787468,131.9029892,136.5195044,141.0542793,
+        145.523581,149.9384838,154.3069816,158.6350985,162.9275271,
+        167.1880201,171.4196431,175.6249446,179.8060753,183.9648729
     };
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
@@ -297,17 +298,17 @@ TEST_F(UrbanProfileTests, AnomolousProp_calcAnomolousPropLossTest){
     }
 }
 
-TEST_F(UrbanProfileTests, calcP452TotalAttenuationTest){
+TEST_F(IndustrialProfileTests, calcP452TotalAttenuationTest){
 
     //basic loss prediction not exceeded for p percent
     const std::vector<double> EXPECTED_LOSS = {
-        149.347206,100.3239608,100.5747582,102.5467334,107.8931615,
-        123.9348437,140.3584782,144.4500525,147.9780989,151.5030596,
-        155.0283871,158.5565199,162.0929341,165.6578413,169.5260939,
-        173.0729193,176.9787614,179.1974968,147.6345642,148.2466785,
-        148.4937753,148.6081691,148.6994773,148.7771238,148.8457268,
-        148.9079392,148.9654408,149.0193735,149.0705578,149.1196107,
-        149.1670157,149.2131659,149.2583925,149.302985,149.347206
+        143.4695904,102.2449514,102.6093824,103.0674969,105.9967285,
+        120.1204379,134.5676804,138.5728015,142.1004989,145.6254216,
+        149.1507068,152.6787633,156.2150009,159.7793871,163.643449,
+        167.189972,171.0911687,173.2970003,141.7729993,142.3793769,
+        142.6241579,142.7374797,142.8279321,142.9048509,142.972811,
+        143.0344404,143.0914031,143.1448304,143.195535,143.2441282,
+        143.2910889,143.3368065,143.3816092,143.4257839,143.4695904
     };
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {

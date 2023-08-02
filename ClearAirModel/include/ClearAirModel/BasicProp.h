@@ -28,13 +28,16 @@ public:
                 const double& freq_GHz, const double& temp_K, const double& dryPressure_hPa, const double& frac_over_sea,
                 const double& p_percent, const double& b0_percent, const ClearAirModel::TxRxPair& horizonDists_km);
 
+    //Get Free space transmission loss with gas attenuation
     inline double getFreeSpaceWithGasLoss_dB() const{ return m_freeSpaceWithGasLoss_dB; }
+    //Get free space loss with gas atten and multipath focusing correction for p percent of time
     inline double getBasicTransmissionLoss_p_percent_dB() const{ return m_basicTransmissionLoss_p_percent_dB; }
+    //Get free space loss with gas atten and multipath focusing correction for b0 percent of time
     inline double getBasicTransmissionLoss_b0_percent_dB() const{ return m_basicTransmissionLoss_b0_percent_dB; }
 
 private:
     //direct inputs
-    const double& m_d_tot_km;           //Distance between Tx and Rx antennas (km)
+    const double& m_d_tot_km;        //Distance between Tx and Rx antennas (km)
     const double& m_height_tx_asl_m; //Tx Antenna height (asl_m)
     const double& m_height_rx_asl_m; //Rx Antenna height (asl_m)
     const double& m_freq_GHz;        //Frequency (GHz)
@@ -42,7 +45,7 @@ private:
     const double& m_dryPressure_hPa; //Dry air pressure (hPa)
     const double& m_p_percent;       //Annual percentage of time not exceeded
 
-    const double& m_b0_percent;         //Time percentage that the refractivity gradient exceeds 100 N-Units/km
+    const double& m_b0_percent;      //Time percentage that the refractivity gradient exceeds 100 N-Units/km
 
     // Note: For LOS path, these distances are from the antenna to the Bullington point from the diffraction method for 50% time
     const ClearAirModel::TxRxPair& m_horizonDists_km; //Tx and Rx Horizon Distances (km)
@@ -50,9 +53,9 @@ private:
     //Consider making this a data member of the path class that gets calculated once
     const double& m_frac_over_sea;      //Fraction of the path over sea
 
-    double m_freeSpaceWithGasLoss_dB;
-    double m_basicTransmissionLoss_p_percent_dB;
-    double m_basicTransmissionLoss_b0_percent_dB;
+    double m_freeSpaceWithGasLoss_dB;   //Free space transmission loss with gas attenuation
+    double m_basicTransmissionLoss_p_percent_dB;    //free space loss with gas atten and multipath focusing correction for p percent of time
+    double m_basicTransmissionLoss_b0_percent_dB;   //free space loss with gas atten and multipath focusing correction for b0 percent of time
 
     /// @brief LOS transmission loss including Gaseous attenuation
     /// @return Transmission Loss (dB)

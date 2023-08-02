@@ -19,7 +19,7 @@ void ClearAirModel::p452_TotalAttenuation::populatePathParameters(const PathProf
         const double& centerLatitude_deg,const double& height_tx_m, const double& height_rx_m, 
         const ClutterType& tx_clutterType, const ClutterType& rx_clutterType){
 
-    //Path Parameters
+    //Path Parameters calculated using actual path
     m_effEarthRadius_med_km = ClearAirModelHelpers::calcMedianEffectiveRadius_km(deltaN);
     m_fracOverSea = path.calcFracOverSea();
     m_b0_percent = path.calcTimePercentBeta0(centerLatitude_deg);

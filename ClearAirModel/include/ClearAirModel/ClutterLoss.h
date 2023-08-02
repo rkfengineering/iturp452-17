@@ -58,28 +58,31 @@ public:
     /// @param path                 distances (km), heights (asl_m), and zone types of the profile points
     /// @param height_tx_m          Tx Antenna center height above ground level (m)
     /// @param height_rx_m          Rx Antenna center height above ground level (m)
-    /// @param tx_clutterType       Clutter Category at tx 
-    /// @param rx_clutterType       Clutter Category at rx 
+    /// @param tx_clutterType       Clutter Category Type at tx 
+    /// @param rx_clutterType       Clutter Category Type at rx 
     ClutterLoss(const double& freq_GHz, const PathProfile::Path& path, 
             const double& height_tx_m, const double& height_rx_m, const ClutterType& tx_clutterType, 
             const ClutterType& rx_clutterType);
 
+    //Get modified terrain path from height gain model
     PathProfile::Path getModifiedPath() const {return m_mod_path;}
+    //Get modified antenna heights above ground level from height gain model
     ClearAirModel::TxRxPair getHeightGainModelHeights_m() const{ return m_hg_height_m; }
+    //Get loss associated with clutter shielding 
     ClearAirModel::TxRxPair getClutterLoss_dB() const{ return m_clutterLoss_dB; }
 
 private:
-    const double& m_freq_GHz;
-    const PathProfile::Path& m_path;
+    const double& m_freq_GHz;          //Frequency (GHz)
+    const PathProfile::Path& m_path;   //Actual terrain path of distances(km), heights (asl)(m), and zone types
     const double& m_height_tx_m;       //Tx Antenna center height above ground level (m)
     const double& m_height_rx_m;       //Rx Antenna center height above ground level (m)    
 
-    double m_tx_clutter_height_m; //Values from lookup table
-    double m_rx_clutter_height_m; 
-    double m_tx_clutter_dist_km;
-    double m_rx_clutter_dist_km;
+    double m_tx_clutter_height_m; //Nominal Tx clutter height (m) from lookup table
+    double m_rx_clutter_height_m; //Nominal Rx clutter height (m) from lookup table
+    double m_tx_clutter_dist_km;  //Nominal Tx clutter distance (km) from lookup table
+    double m_rx_clutter_dist_km;  //Nominal Rx clutter distance (km) from lookup table
 
-    /// distances (km), heights (asl_m), and zone types of the profile points in the height gain model
+    /// distances (km), heights (asl)(m), and zone types of the profile points in the height gain model
     PathProfile::Path m_mod_path; 
     /// Tx,Rx Antenna center height above ground level (m) in the height gain model
     ClearAirModel::TxRxPair m_hg_height_m;
@@ -95,6 +98,5 @@ private:
     void calcClutterLoss_dB();
 
 };//end class ClutterLoss
-
 } //end namespace ClearAirModel
 #endif /* CLUTTER_LOSS_H */
