@@ -3,11 +3,12 @@
 
 #include "gtest/gtest.h"
 #include "PathProfile.h"
-#include "EffectiveEarth.h"
+#include "ClearAirModelHelpers.h"
+
+namespace ClearAirModel{
 
 //Section 4.4 Prediction of the basic transmission loss, Lba (dB) 
 //occurring during periods of anomalous propagation (ducting and layer reflection)
-
 class AnomolousProp {
     //Allow tests to access private methods
     FRIEND_TEST(MixedProfileTests, AnomolousProp_calcSmoothEarthTxRxHeights_DuctingModel_Test);
@@ -33,7 +34,7 @@ public:
         const double& temp_K, const double& dryPressure_hPa, const double& dist_coast_tx_km,
         const double& dist_coast_rx_km, const double& p_percent,
         const double& b0_percent, const double& eff_radius_med_km, 
-        const EffectiveEarth::HorizonAnglesAndDistances& horizonVals,
+        const ClearAirModel::HorizonAnglesAndDistances& horizonVals,
         const double& frac_over_sea
     );
 
@@ -55,14 +56,14 @@ private:
 
     const double& m_b0_percent;         //Time percentage that the refractivity gradient exceeds 100 N-Units/km
     const double& m_eff_radius_med_km;  //Median effective Earth's radius (km)
-    const EffectiveEarth::HorizonAnglesAndDistances& m_horizonVals; //Tx and Rx Horizon Elevation Angles (mrad) and Tx and Rx Horizon Distances (km)
+    const ClearAirModel::HorizonAnglesAndDistances& m_horizonVals; //Tx and Rx Horizon Elevation Angles (mrad) and Tx and Rx Horizon Distances (km)
 
     //Consider making this a data member of the path class that gets calculated once
     const double& m_frac_over_sea;      //Fraction of the path over sea
 
     //calculated internally, exposed for better debugging
     double m_d_tot_km;                              //Distance between Tx and Rx antennas (km)
-    EffectiveEarth::TxRxPair m_effHeights_ducting_m;//Effective height of Tx and Rx antennas used in ducting/layer reflection model (m)
+    ClearAirModel::TxRxPair m_effHeights_ducting_m;//Effective height of Tx and Rx antennas used in ducting/layer reflection model (m)
     double m_terrainRoughness_m;                    //Terrain roughness parameter (m)
     double m_longestContiguousInlandDistance_km;    //Longest contiguous Inland segment in profile path (km)
 
@@ -88,7 +89,7 @@ private:
     /// @brief Annex 2 Section 5.1.6.4 Calculates effective Antenna Heights for use in the Anomolous Propagation model
     /// @param path Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
     /// @return Tx,Rx effective antenna heights for the ducting/layer reflection model (amsl) (m)
-    EffectiveEarth::TxRxPair calcSmoothEarthTxRxHeights_DuctingModel_amsl_m() const;
+    ClearAirModel::TxRxPair calcSmoothEarthTxRxHeights_DuctingModel_amsl_m() const;
 
     /// @brief Annex 2 Section 5.1.6.4 Calculates maximum height of the terrain above the smooth-Earth 
     ///        surface in the section of the path between, and including, the horizon points
@@ -97,6 +98,7 @@ private:
 
 }; //end class AnomolousProp
 
+} //end namespace ClearAirModel
 #endif /* ANOMOLOUS_PROP_H */
 
 

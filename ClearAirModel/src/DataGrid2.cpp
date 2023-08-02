@@ -6,7 +6,33 @@
 #include <sstream>
 #include <iostream>
 
-//New constructor. all other functions are exact copies
+//New data loader in constructor. all other functions are exact copies
+std::vector<std::vector<double>> DataGrid2::readGridData(const std::string& sourceFilePath) const{
+	std::vector<std::vector<double>> fileContents{};
+
+	//move to function that reads raw data and populates datagrid
+	std::ifstream file;
+	file.open(sourceFilePath);
+	std::string line,value;
+	if(file.is_open()){
+		while(std::getline(file,line)){
+			std::vector<double> row{};
+			//split line into vector of doubles (tokenizer)
+			std::stringstream linestream(line);
+			while(std::getline(linestream, value, ' ')){
+				//throw out initial empty value (row starts with spaces)
+				if(!value.empty()){
+					row.push_back(std::stod(value));
+				}
+			}
+			//push back vector to _dataGrid
+			if(!row.empty()){
+				fileContents.push_back(row);
+			}
+		}
+	}
+	return fileContents;
+}
 
 // NOTE: Assumes default start/end values for latitude/longitude bounds
 DataGrid2::DataGrid2(const std::string& sourceFilePath, const double& resolution_deg,
@@ -26,28 +52,7 @@ DataGrid2::DataGrid2(const std::string& sourceFilePath, const double& resolution
 	const double EXPECTED_NUM_ROWS = std::round(abs(_endLat_deg - _startLat_deg) / _resolution_deg) + 1;
 
 	try {
-
-        //move to function that reads raw data and populates datagrid
-        std::ifstream file;
-        file.open(sourceFilePath);
-        std::string line,value;
-        if(file.is_open()){
-            while(std::getline(file,line)){
-                std::vector<double> row{};
-                //split line into vector of doubles (tokenizer)
-                std::stringstream linestream(line);
-                while(std::getline(linestream, value, ' ')){
-                    //throw out initial empty value (row starts with spaces)
-                    if(!value.empty()){
-                        row.push_back(std::stod(value));
-                    }
-                }
-                //push back vector to _dataGrid
-                if(!row.empty()){
-                    _dataGrid.push_back(row);
-                }
-            }
-        }
+		_dataGrid = readGridData(sourceFilePath);
 	}
 	catch (std::exception& err) {
 		std::ostringstream oStrStream;

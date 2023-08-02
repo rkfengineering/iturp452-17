@@ -1,15 +1,15 @@
 #include "ClearAirModel/AnomolousProp.h"
-#include "ClearAirModel/BasicProp.h"
 #include "Common/MathHelpers.h"
+#include "ClearAirModel/CalculationHelpers.h"
 #include <cmath>
 #include <iostream>
 
-AnomolousProp::AnomolousProp(const PathProfile::Path& path, const double& freq_GHz,
+ClearAirModel::AnomolousProp::AnomolousProp(const PathProfile::Path& path, const double& freq_GHz,
     const double& height_tx_asl_m, const double& height_rx_asl_m,
     const double& temp_K, const double& dryPressure_hPa, const double& dist_coast_tx_km,
     const double& dist_coast_rx_km, const double& p_percent,
     const double& b0_percent, const double& eff_radius_med_km, 
-    const EffectiveEarth::HorizonAnglesAndDistances& horizonVals,
+    const ClearAirModel::HorizonAnglesAndDistances& horizonVals,
     const double& frac_over_sea): 
     m_path{path}, m_freq_GHz{freq_GHz}, m_height_tx_asl_m{height_tx_asl_m}, m_height_rx_asl_m{height_rx_asl_m},
     m_temp_K{temp_K}, m_dryPressure_hPa{dryPressure_hPa}, m_dist_coast_tx_km{dist_coast_tx_km}, m_dist_coast_rx_km{dist_coast_rx_km},
@@ -30,7 +30,7 @@ AnomolousProp::AnomolousProp(const PathProfile::Path& path, const double& freq_G
     m_anomolousPropLoss_dB = calcAnomolousPropLoss();
 }
 
-double AnomolousProp::calcFixedCouplingLoss_helper_dB()const{
+double ClearAirModel::AnomolousProp::calcFixedCouplingLoss_helper_dB()const{
 
     //Equation 47a Empirical correction to account for the increasing attenuation with wavelength inducted propagation 
     double Alf = 0.0;
@@ -79,7 +79,7 @@ double AnomolousProp::calcFixedCouplingLoss_helper_dB()const{
             + Alf + Ast + Asr + Act + Acr;
 }
 
-double AnomolousProp::calcTimePercentageAndAngularDistanceLoss_helper_dB()const{
+double ClearAirModel::AnomolousProp::calcTimePercentageAndAngularDistanceLoss_helper_dB()const{
 
     //Equation 51
     const double specificAttenuation_dB_per_mrad = 5.0e-5*m_eff_radius_med_km*std::pow(m_freq_GHz,1.0/3.0);
@@ -91,8 +91,8 @@ double AnomolousProp::calcTimePercentageAndAngularDistanceLoss_helper_dB()const{
     const double corrected_horizonElevation_tx_mrad = std::min(horizonElevation_tx_mrad, 0.1*horizonDist_tx_km);
     const double corrected_horizonElevation_rx_mrad = std::min(horizonElevation_rx_mrad, 0.1*horizonDist_rx_km);
 
-    const double m_pathAngularDistance_mrad = EffectiveEarth::calcPathAngularDistance_mrad(
-        EffectiveEarth::TxRxPair{corrected_horizonElevation_tx_mrad, corrected_horizonElevation_rx_mrad},
+    const double m_pathAngularDistance_mrad = ClearAirModelHelpers::calcPathAngularDistance_mrad(
+        ClearAirModel::TxRxPair{corrected_horizonElevation_tx_mrad, corrected_horizonElevation_rx_mrad},
         m_d_tot_km,
         m_eff_radius_med_km
     );
@@ -132,7 +132,7 @@ double AnomolousProp::calcTimePercentageAndAngularDistanceLoss_helper_dB()const{
     return specificAttenuation_dB_per_mrad * m_pathAngularDistance_mrad + timePercentageVariabilityLoss_dB;
 }
 
-double AnomolousProp::calcAnomolousPropLoss()const{
+double ClearAirModel::AnomolousProp::calcAnomolousPropLoss()const{
 
     //The extra m_path length from considering the antenna heights is insignificant 
     //but it is also an explicit difference between 452-16 and 452-17
@@ -143,19 +143,18 @@ double AnomolousProp::calcAnomolousPropLoss()const{
     //Equation 9a Water Vapor Density
     const double rho = 7.5 + 2.5 * m_frac_over_sea;
     // Equation 9
-    const double gasLoss_dB = BasicProp::calcGasAtten_dB(d_los_km,m_freq_GHz,m_temp_K,m_dryPressure_hPa,rho);
+    const double gasLoss_dB = ClearAirModelHelpers::calcGasAtten_dB(d_los_km,m_freq_GHz,m_temp_K,m_dryPressure_hPa,rho);
 
     //Equation 46
     return m_fixedCouplingLoss_dB+m_timePercentageAndAngularDistanceLoss_dB+gasLoss_dB;
 }
 
-
-EffectiveEarth::TxRxPair AnomolousProp::calcSmoothEarthTxRxHeights_DuctingModel_amsl_m()const{
+ClearAirModel::TxRxPair ClearAirModel::AnomolousProp::calcSmoothEarthTxRxHeights_DuctingModel_amsl_m()const{
 
     //Equations 166a, 166b
     //Tx,Rx heights from a least squares smooth m_path
     auto [height_smooth_tx_amsl_m,height_smooth_rx_amsl_m] = 
-            EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(m_path);
+            ClearAirModelHelpers::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(m_path);
     //Equation 168 terminal heights must be above ground level
     height_smooth_tx_amsl_m = std::min(height_smooth_tx_amsl_m, m_path.front().h_asl_m);
     height_smooth_rx_amsl_m = std::min(height_smooth_rx_amsl_m, m_path.back().h_asl_m);
@@ -164,15 +163,15 @@ EffectiveEarth::TxRxPair AnomolousProp::calcSmoothEarthTxRxHeights_DuctingModel_
     const double eff_height_tx_m = m_height_tx_asl_m - height_smooth_tx_amsl_m;
     const double eff_height_rx_m = m_height_rx_asl_m - height_smooth_rx_amsl_m;
 
-    return EffectiveEarth::TxRxPair(eff_height_tx_m,eff_height_rx_m);
+    return ClearAirModel::TxRxPair(eff_height_tx_m,eff_height_rx_m);
 }
 
 //TODO refactor code to make more efficient. We don't have to call the helper function this often
-double AnomolousProp::calcTerrainRoughness_m()const{
+double ClearAirModel::AnomolousProp::calcTerrainRoughness_m()const{
     //Equations 166a, 166b
     //Tx,Rx heights from a least squares smooth m_path
     auto [height_smooth_tx_amsl_m,height_smooth_rx_amsl_m] = 
-            EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(m_path);
+            ClearAirModelHelpers::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(m_path);
     //Equation 168 terminal heights must be above ground level
     height_smooth_tx_amsl_m = std::min(height_smooth_tx_amsl_m, m_path.front().h_asl_m);
     height_smooth_rx_amsl_m = std::min(height_smooth_rx_amsl_m, m_path.back().h_asl_m);

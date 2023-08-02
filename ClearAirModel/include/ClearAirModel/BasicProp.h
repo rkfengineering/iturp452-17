@@ -1,50 +1,76 @@
 #ifndef BASIC_PROP_H
 #define BASIC_PROP_H
 
+#include "gtest/gtest.h"
 #include "PathProfile.h"
+#include "ClearAirModelHelpers.h"
+
+namespace ClearAirModel{
+
 //Section 4.1 LOS propagation (including short term effects)
 //free space, gas atten, multipath/focusing, 
 
-namespace BasicProp {
+class BasicProp {
+    FRIEND_TEST(BasicPropTests, calcFreeSpacePathLoss);
+public:
+    /// @brief Load inputs for Basic Propagation Model with gaseous attenuation and multipath focusing and calculate
+    /// @param d_tot_km         //Distance between Tx and Rx antennas (km)
+    /// @param height_tx_asl_m  //Tx Antenna height (asl) (m)
+    /// @param height_rx_asl_m  //Rx Antenna height (asl) (m)
+    /// @param freq_GHz         //Frequency (GHz)
+    /// @param temp_K           //Temperature (K)
+    /// @param dryPressure_hPa  //Dry air pressure (hPa)
+    /// @param frac_over_sea    //Fraction of the path over sea
+    /// @param p_percent        //Annual percentage of time not exceeded
+    /// @param b0_percent       //Time percentage that the refractivity gradient exceeds 100 N-Units/km
+    /// @param horizonDists_km  //Tx and Rx Horizon Distances (km)
+    BasicProp(const double& d_tot_km, const double& height_tx_asl_m, const double& height_rx_asl_m,
+                const double& freq_GHz, const double& temp_K, const double& dryPressure_hPa, const double& frac_over_sea,
+                const double& p_percent, const double& b0_percent, const ClearAirModel::TxRxPair& horizonDists_km);
 
-    // Note 1. For LOS path, the distance is from the antenna to the Bullington point from the diffraction method for 50% time
+    inline double getFreeSpaceWithGasLoss_dB() const{ return m_freeSpaceWithGasLoss_dB; }
+    inline double getBasicTransmissionLoss_p_percent_dB() const{ return m_basicTransmissionLoss_p_percent_dB; }
+    inline double getBasicTransmissionLoss_b0_percent_dB() const{ return m_basicTransmissionLoss_b0_percent_dB; }
+
+private:
+    //direct inputs
+    const double& m_d_tot_km;           //Distance between Tx and Rx antennas (km)
+    const double& m_height_tx_asl_m; //Tx Antenna height (asl_m)
+    const double& m_height_rx_asl_m; //Rx Antenna height (asl_m)
+    const double& m_freq_GHz;        //Frequency (GHz)
+    const double& m_temp_K;          //Temperature (K)
+    const double& m_dryPressure_hPa; //Dry air pressure (hPa)
+    const double& m_p_percent;       //Annual percentage of time not exceeded
+
+    const double& m_b0_percent;         //Time percentage that the refractivity gradient exceeds 100 N-Units/km
+
+    // Note: For LOS path, these distances are from the antenna to the Bullington point from the diffraction method for 50% time
+    const ClearAirModel::TxRxPair& m_horizonDists_km; //Tx and Rx Horizon Distances (km)
+
+    //Consider making this a data member of the path class that gets calculated once
+    const double& m_frac_over_sea;      //Fraction of the path over sea
+
+    double m_freeSpaceWithGasLoss_dB;
+    double m_basicTransmissionLoss_p_percent_dB;
+    double m_basicTransmissionLoss_b0_percent_dB;
 
     /// @brief LOS transmission loss including Gaseous attenuation
-    /// @param d_tot_km             Distance between Tx and Rx antennas, assuming flat earth (km)
-    /// @param height_tx_asl_m      Tx Antenna height (asl_m)
-    /// @param height_rx_asl_m      Rx Antenna height (asl_m)
-    /// @param freq_GHz             Frequency (GHz)
-    /// @param temp_K               Temperature (K)
-    /// @param dryPressure_hPa      Dry air pressure (hPa)
-    /// @param frac_over_sea        Fraction of the path over sea
     /// @return Transmission Loss (dB)
-    double calcPathLossWithGas_dB(const double& d_tot_km, const double& height_tx_asl_m, const double& height_rx_asl_m,
-                        const double& freq_GHz, const double& temp_K, const double& dryPressure_hPa, const double& frac_over_sea);
+    double calcPathLossWithGas_dB() const;
     
     /// @brief Path loss from Free Space Attenuation
-    /// @param d_los_km 
-    /// @param freq_GHz 
+    /// @param d_los_km Distance (km)
+    /// @param freq_GHz Frequency (GHz)
     /// @return Path Loss (dB)
-    double calcFreeSpacePathLoss_dB(const double& d_los_km, const double& freq_GHz);
+    double calcFreeSpacePathLoss_dB(const double& d_los_km, const double& freq_GHz) const;
 
     /// @brief Corrections for multipath and focusing effects for attenuation not exceeded for time percentage p
-    /// @param d_horizon_t_km       Distance from Tx antenna to its horizon (km), see Note 1
-    /// @param d_horizon_r_km       Distance from Rx antenna to its horizon (km), see Note 1
     /// @param p_percent            Percentage of time not exceeded (%), 0<p<=50
     /// @return Attenuation (dB)
-    double calcMultipathFocusingCorrection_dB(const double& d_horizon_t_km, const double& d_horizon_r_km, const double& p_percent);
+    double calcMultipathFocusingCorrection_dB(const double& p_percent) const;
 
-    /// @brief Calculate gaseous attenuation using ITU-R P.676-13 without standard atmospheric parameters
-    /// @param d_los_km                 Line of sight Distance between Tx and Rx antennas (km)
-    /// @param freq_GHz                 Frequency (GHz)
-    /// @param temp_K                   Temperature (K)
-    /// @param dryPressure_hPa          Dry air pressure (hPa)
-    /// @param waterVaporDensity_g_m3   Water Vapor Density (g/m3)
-    /// @return gas attenuation (dB)
-    double calcGasAtten_dB(const double& d_los_km, const double& freq_GHz, const double& temp_K, 
-                                const double& dryPressure_hPa, const double& waterVaporDensity_g_m3);
-
-}//end namespace BasicProp
+};//end class BasicProp
+} //end namespace ClearAirModel
 
 #endif /* BASIC_PROP_H */
 

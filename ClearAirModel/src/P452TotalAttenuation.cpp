@@ -1,98 +1,109 @@
 #include "ClearAirModel/P452TotalAttenuation.h"
 #include "ClearAirModel/CalculationHelpers.h"
+#include <tuple>
 
-double p452_TotalAttenuation::calcP452TotalAttenuation(const double& freq_GHz, const double& p_percent, const PathProfile::Path path, 
-        const double& height_tx_m, const double& height_rx_m, const double& centerLatitude_deg, const double& txHorizonGain_dBi, 
-        const double& rxHorizonGain_dBi, const Enumerations::PolarizationType& pol, const double& dist_coast_tx_km, 
-        const double& dist_coast_rx_km, const double& deltaN, const double& surfaceRefractivity,
-        const double& temp_K, const double& dryPressure_hPa,const double& tx_clutter_height_m, const double& rx_clutter_height_m,
-        const double& tx_clutter_dist_km, const double& rx_clutter_dist_km){
+ClearAirModel::p452_TotalAttenuation::p452_TotalAttenuation(const double& freq_GHz, const double& p_percent, const PathProfile::Path path, 
+            const double& height_tx_m, const double& height_rx_m, const double& centerLatitude_deg, const double& txHorizonGain_dBi, 
+            const double& rxHorizonGain_dBi, const Enumerations::PolarizationType& pol, const double& dist_coast_tx_km, 
+            const double& dist_coast_rx_km, const double& deltaN, const double& surfaceRefractivity,
+            const double& temp_K, const double& dryPressure_hPa, const ClutterType& tx_clutterType, 
+            const ClutterType& rx_clutterType):
+            m_freq_GHz{freq_GHz}, m_p_percent{p_percent}{
+                populatePathParameters(path,deltaN,centerLatitude_deg,height_tx_m,height_rx_m,tx_clutterType,rx_clutterType);
+                calculateSubModels(temp_K,dryPressure_hPa,deltaN,dist_coast_tx_km,dist_coast_rx_km,
+                    surfaceRefractivity,txHorizonGain_dBi,rxHorizonGain_dBi,pol);
+                m_totalTransmissionLoss_dB=calcP452TotalAttenuation();
+}
+
+void ClearAirModel::p452_TotalAttenuation::populatePathParameters(const PathProfile::Path& path, const double& deltaN, 
+        const double& centerLatitude_deg,const double& height_tx_m, const double& height_rx_m, 
+        const ClutterType& tx_clutterType, const ClutterType& rx_clutterType){
 
     //Path Parameters
-    const double effEarthRadius_med_km = EffectiveEarth::calcMedianEffectiveRadius_km(deltaN);
-    const double fracOverSea = path.calcFracOverSea();
-    const double b0_percent = path.calcTimePercentBeta0(centerLatitude_deg);
+    m_effEarthRadius_med_km = ClearAirModelHelpers::calcMedianEffectiveRadius_km(deltaN);
+    m_fracOverSea = path.calcFracOverSea();
+    m_b0_percent = path.calcTimePercentBeta0(centerLatitude_deg);
 
     //Apply height gain model correction from clutter model
-    const auto [mod_path, hg_height_tx_m, hg_height_rx_m, tx_clutterLoss_dB, rx_clutterLoss_dB] = 
-            ClutterLoss::calcClutterLoss_dB(freq_GHz,path,height_tx_m,height_rx_m,tx_clutter_height_m,
-                                        rx_clutter_height_m,tx_clutter_dist_km,rx_clutter_dist_km);
-    const double d_tot_km = mod_path.back().d_km;
-    const double height_tx_asl_m = hg_height_tx_m + mod_path.front().h_asl_m;
-    const double height_rx_asl_m = hg_height_rx_m + mod_path.back().h_asl_m;
+    const auto ClutterLossModel = ClutterLoss(m_freq_GHz,path,height_tx_m,height_rx_m,tx_clutterType,rx_clutterType);
+    m_mod_path = ClutterLossModel.getModifiedPath();
 
-    //Fj
-    const double slopeInterpolationParameter = 
-        p452_TotalAttenuation::calcSlopeInterpolationParameter(mod_path,effEarthRadius_med_km,height_tx_asl_m,height_rx_asl_m);
+    const auto [hg_height_tx_m, hg_height_rx_m] = ClutterLossModel.getHeightGainModelHeights_m();
+    std::tie(m_tx_clutterLoss_dB, m_rx_clutterLoss_dB) = ClutterLossModel.getClutterLoss_dB();
 
-    //Fk
-    const double pathBlendingInterpolationParameter = p452_TotalAttenuation::calcPathBlendingInterpolationParameter(d_tot_km);
-    
+    m_height_tx_asl_m = hg_height_tx_m + m_mod_path.front().h_asl_m;
+    m_height_rx_asl_m = hg_height_rx_m + m_mod_path.back().h_asl_m;
+    m_d_tot_km = m_mod_path.back().d_km;
+
     //Path geometry parameters of modified path
-    const auto HorizonVals = EffectiveEarth::calcHorizonAnglesAndDistances(
-        mod_path, height_tx_asl_m, height_rx_asl_m, effEarthRadius_med_km, freq_GHz
+    m_HorizonVals = ClearAirModelHelpers::calcHorizonAnglesAndDistances(
+        m_mod_path, m_height_tx_asl_m, m_height_rx_asl_m, m_effEarthRadius_med_km, m_freq_GHz
     );
-    const auto [HorizonAngles, HorizonDistances] = HorizonVals;
-    const auto [horizonDist_tx_km, horizonDist_rx_km] = HorizonDistances;
+}
 
-    //TODO move this into troposcatter section
-    const double pathAngularDistance = EffectiveEarth::calcPathAngularDistance_mrad(HorizonAngles,d_tot_km,effEarthRadius_med_km);
+//TODO replace DN with median effective earth radius as input for diffraction model
+void ClearAirModel::p452_TotalAttenuation::calculateSubModels(const double& temp_K, const double& dryPressure_hPa, 
+    const double deltaN, const double& dist_coast_tx_km, const double& dist_coast_rx_km, 
+    const double& seaLevelSurfaceRefractivity, const double& txHorizonGain_dBi, const double& rxHorizonGain_dBi,
+    const Enumerations::PolarizationType& pol){
 
+    const auto [HorizonAngles_mrad, HorizonDistances_km] = m_HorizonVals;
+    
+    const auto BasicPropModel = BasicProp(m_d_tot_km, m_height_tx_asl_m, m_height_rx_asl_m, m_freq_GHz, temp_K, dryPressure_hPa, 
+        m_fracOverSea, m_p_percent, m_b0_percent, HorizonDistances_km);
     //Equation 8 (Lbfsg)
-    const double freeSpaceWithGasLoss_dB = BasicProp::calcPathLossWithGas_dB(d_tot_km,height_tx_asl_m,
-                                            height_rx_asl_m,freq_GHz,temp_K,dryPressure_hPa,fracOverSea);
-    //Equation 10a
-    const double calcMultipathFocusingCorrection_p_dB = 
-            BasicProp::calcMultipathFocusingCorrection_dB(horizonDist_tx_km, horizonDist_rx_km, p_percent);
-    //Equation 10b
-    const double calcMultipathFocusingCorrection_b0_dB = 
-            BasicProp::calcMultipathFocusingCorrection_dB(horizonDist_tx_km, horizonDist_rx_km, b0_percent);
-
-    //TODO rename variables to human-readable
-
+    m_freeSpaceWithGasLoss_dB = BasicPropModel.getFreeSpaceWithGasLoss_dB();
     //Equation 11 (Lb0p) basic transmission loss with gas and multipath not exceeded for p percent of time
-    const double basicTransmissionLoss_p_percent_dB = freeSpaceWithGasLoss_dB + calcMultipathFocusingCorrection_p_dB;
+    m_basicTransmissionLoss_p_percent_dB = BasicPropModel.getBasicTransmissionLoss_p_percent_dB();
     //Equation 12 (Lb0b)
-    const double basicTransmissionLoss_b0_percent_dB = freeSpaceWithGasLoss_dB + calcMultipathFocusingCorrection_b0_dB;  
-    
+    m_basicTransmissionLoss_b0_percent_dB = BasicPropModel.getBasicTransmissionLoss_b0_percent_dB();
+
+    const auto DiffractionModel = DiffractionLoss(m_mod_path, m_height_tx_asl_m, m_height_rx_asl_m, m_freq_GHz, 
+        deltaN, pol, m_p_percent, m_b0_percent, m_fracOverSea);
     //Delta Bullington Diffraction Loss calculations
-    const auto DiffractionModel = DiffractionLoss(
-        mod_path, height_tx_asl_m, height_rx_asl_m, freq_GHz, deltaN, pol, p_percent, b0_percent, fracOverSea
-    );
-    const double diffractionLoss_p_percent_dB = DiffractionModel.getDiffractionLoss_p_percent_dB();
+    m_diffractionLoss_p_percent_dB = DiffractionModel.getDiffractionLoss_p_percent_dB();
+    m_diffractionLoss_median_dB = DiffractionModel.getDiffractionLoss_median_dB();
+
+    //Anomolous Propagation Calculations (Ducting and Layer Reflection)
+    const auto AnomolousPropModel = ClearAirModel::AnomolousProp(m_mod_path, m_freq_GHz, m_height_tx_asl_m, 
+        m_height_rx_asl_m, temp_K, dryPressure_hPa, dist_coast_tx_km, dist_coast_rx_km, m_p_percent,
+        m_b0_percent, m_effEarthRadius_med_km, m_HorizonVals, m_fracOverSea);
+    m_anomolousPropagationLoss_dB = AnomolousPropModel.getAnomolousPropLoss_dB();
     
+    //Calculate Tropospheric Scatter
+    m_tropoScatterLoss_dB = TropoScatter::calcTroposcatterLoss_dB(m_d_tot_km,m_freq_GHz,m_height_tx_asl_m,
+        m_height_rx_asl_m, HorizonAngles_mrad, m_effEarthRadius_med_km, seaLevelSurfaceRefractivity, 
+        txHorizonGain_dBi, rxHorizonGain_dBi, temp_K, dryPressure_hPa, m_p_percent);
+}
+
+double ClearAirModel::p452_TotalAttenuation::calcP452TotalAttenuation(){
+  
     //Equation 43 (Lbd50) basic loss with diffraction loss not exceeded for 50 percent of time
-    const double basicWithMedianDiffractionLoss_dB = freeSpaceWithGasLoss_dB + DiffractionModel.getDiffractionLoss_median_dB();
+    const double basicWithMedianDiffractionLoss_dB = m_freeSpaceWithGasLoss_dB + m_diffractionLoss_median_dB;
     //Equation 44 (Lbd) basic loss with diffraction loss not exceeded for p percent of time
-    const double basicWithDiffractionLoss_p_percent_dB = basicTransmissionLoss_p_percent_dB + diffractionLoss_p_percent_dB;
+    const double basicWithDiffractionLoss_p_percent_dB = m_basicTransmissionLoss_p_percent_dB + m_diffractionLoss_p_percent_dB;
 
     //Equation 60 Minimum basic transmission loss associated with LOS propagation and over-sea sub-path diffraction
-    double minLossWithOverSeaSubPathDiffraction_dB = basicTransmissionLoss_p_percent_dB + (1-fracOverSea)*diffractionLoss_p_percent_dB;
-    if(p_percent>=b0_percent){
+    double minLossWithOverSeaSubPathDiffraction_dB = m_basicTransmissionLoss_p_percent_dB + (1-m_fracOverSea)*m_diffractionLoss_p_percent_dB;
+    if(m_p_percent>=m_b0_percent){
         //Diffraction Interpolation parameter
         const double diffractionInterpolationParameter = 
-                    CalculationHelpers::inv_cum_norm(p_percent/100.0)/CalculationHelpers::inv_cum_norm(b0_percent/100.0);
+                    CalculationHelpers::inv_cum_norm(m_p_percent/100.0)/CalculationHelpers::inv_cum_norm(m_b0_percent/100.0);
                     
         minLossWithOverSeaSubPathDiffraction_dB = MathHelpers::interpolate1D(
                 basicWithMedianDiffractionLoss_dB, 
-                basicTransmissionLoss_b0_percent_dB + (1-fracOverSea)*diffractionLoss_p_percent_dB,
+                m_basicTransmissionLoss_b0_percent_dB + (1-m_fracOverSea)*m_diffractionLoss_p_percent_dB,
                 diffractionInterpolationParameter
         );
     }
 
-    //Anomolous Propagation Calculations (Ducting and Layer Reflection)
-    //TODO figure out a better way to handle inputs/where to put what calculations
-    const auto AnomolousPropModel = AnomolousProp(mod_path, freq_GHz, height_tx_asl_m, height_rx_asl_m,
-        temp_K, dryPressure_hPa, dist_coast_tx_km, dist_coast_rx_km, p_percent,
-        b0_percent, effEarthRadius_med_km, HorizonVals, fracOverSea);
-
-    const double AnomolousPropagationLoss_dB = AnomolousPropModel.getAnomolousPropLoss_dB();
-
     //Equation 61 (Lminbap)
     constexpr double eta = 2.5; //constant parameter
     const double minLossWithAnomolousPropagation_dB = 
-                eta*std::log(std::exp(AnomolousPropagationLoss_dB/eta)+std::exp(basicTransmissionLoss_p_percent_dB/eta));
+                eta*std::log(std::exp(m_anomolousPropagationLoss_dB/eta)+std::exp(m_basicTransmissionLoss_p_percent_dB/eta));
 
+    //Fk
+    const double pathBlendingInterpolationParameter = p452_TotalAttenuation::calcPathBlendingInterpolationParameter(m_d_tot_km);
     //Equation 62 (Lbda)
     double diffractionAndAnomolousPropagationLoss_dB = basicWithDiffractionLoss_p_percent_dB;
     if(minLossWithAnomolousPropagation_dB <= basicWithDiffractionLoss_p_percent_dB){
@@ -100,22 +111,21 @@ double p452_TotalAttenuation::calcP452TotalAttenuation(const double& freq_GHz, c
                                                     basicWithDiffractionLoss_p_percent_dB,pathBlendingInterpolationParameter);
     }
 
+    //Fj
+    const double slopeInterpolationParameter = 
+        p452_TotalAttenuation::calcSlopeInterpolationParameter(m_mod_path,m_effEarthRadius_med_km,m_height_tx_asl_m,m_height_rx_asl_m);
     //Equation 63 (Lbam)
     const double modifiedDiffractionAndAnomolousPropagationLoss_dB = 
                                                     MathHelpers::interpolate1D(diffractionAndAnomolousPropagationLoss_dB, 
                                                     minLossWithOverSeaSubPathDiffraction_dB,slopeInterpolationParameter);
 
-    //Calculate Tropospheric Scatter
-    const double tropoScatterLoss_dB = TropoScatter::calcTroposcatterLoss_dB(d_tot_km,freq_GHz,height_tx_asl_m,height_rx_asl_m,
-            pathAngularDistance, surfaceRefractivity, txHorizonGain_dBi, rxHorizonGain_dBi, temp_K, dryPressure_hPa, p_percent);
-
     //Equation 64 Total Loss predicted by model, combines losses using a geometric mean of the linear values
-    const double val1 = std::pow(10.0, -0.2*tropoScatterLoss_dB);
+    const double val1 = std::pow(10.0, -0.2*m_tropoScatterLoss_dB);
     const double val2 = std::pow(10.0, -0.2*modifiedDiffractionAndAnomolousPropagationLoss_dB);
-    return -5.0 * std::log10(val1+val2)+ tx_clutterLoss_dB + rx_clutterLoss_dB;
+    return -5.0 * std::log10(val1+val2)+ m_tx_clutterLoss_dB + m_rx_clutterLoss_dB;
 }
 
-double p452_TotalAttenuation::calcSlopeInterpolationParameter(const PathProfile::Path path, const double effEarthRadius_med_km,
+double ClearAirModel::p452_TotalAttenuation::calcSlopeInterpolationParameter(const PathProfile::Path path, const double effEarthRadius_med_km,
         const double& height_tx_asl_m,const double& height_rx_asl_m){
 
     const double d_tot = path.back().d_km;
@@ -144,7 +154,7 @@ double p452_TotalAttenuation::calcSlopeInterpolationParameter(const PathProfile:
     return 1.0 - 0.5*(1.0 + std::tanh(3.0 * ksi * (max_slope_tx-slope_tr_los)/theta));
 }
 
-double p452_TotalAttenuation::calcPathBlendingInterpolationParameter(const double& d_tot_km){
+double ClearAirModel::p452_TotalAttenuation::calcPathBlendingInterpolationParameter(const double& d_tot_km){
     //fixed parameter for distance range of associated blending
     constexpr double dsw = 20;
     //fixed parameter for blending slope at ends of range

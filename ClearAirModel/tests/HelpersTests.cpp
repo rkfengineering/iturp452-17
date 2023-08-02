@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "ClearAirModel/PathProfile.h"
 #include "ClearAirModel/CalculationHelpers.h"
-#include "ClearAirModel/EffectiveEarth.h"
+#include "ClearAirModel/ClearAirModelHelpers.h"
 #include "ClearAirModel/DataGrid2.h"
 #include "ClearAirModel/BasicProp.h"
 #include "ClearAirModel/TropoScatter.h"
@@ -21,6 +21,8 @@ namespace {
 	const std::filesystem::path clearAirPathsFullPath = CMAKE_CLEARAIR_SRC_DIR / std::filesystem::path("tests/test_paths");
 	const std::filesystem::path clearAirDataFullPath = CMAKE_CLEARAIR_SRC_DIR / std::filesystem::path("data");
 }
+
+namespace ClearAirModel{
 
 TEST(ProfilePathTests, loadProfileTest){
 	const std::vector<std::string> PROFILE_LIST = {
@@ -87,12 +89,12 @@ TEST(HelpersTests, InvCumNormTest){
 //setting a lower yheight limit at the actual terrain height 
 
 //Endpoints estimated from Excel Linear Trendline
-TEST(EffectiveEarthTests, calcLeastSquaresSmoothEarthHeightsHelper){
+TEST(ClearAirModelHelpersTests, calcLeastSquaresSmoothEarthHeightsHelper){
 	const double EXPECTED_START = 635.2;
 	const double EXPECTED_END = 357.3;
 
 	const PathProfile::Path p(clearAirPathsFullPath/std::filesystem::path("dbull_path1.csv"));
-	const auto [eff_height_tx, eff_height_rx] = EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(p);
+	const auto [eff_height_tx, eff_height_rx] = ClearAirModelHelpers::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(p);
 
 	//high tolerance since the values were read off a graph
 	EXPECT_NEAR(EXPECTED_START,eff_height_tx,0.5);
@@ -108,7 +110,11 @@ TEST(BasicPropTests, calcFreeSpacePathLoss){
 	const double EXPECTED_LOSS = PowerUnitConversionHelpers::convertWattsToDb(
 		DataStructures::PATH_LOSS_SCALE_FACTOR * INPUT_DIST_KM * INPUT_FREQ_GHz) * 2.0;
 
-	const double VAL_LOSS =  BasicProp::calcFreeSpacePathLoss_dB(INPUT_DIST_KM,INPUT_FREQ_GHz);
+	//arbitrary inputs to create the object
+	const auto BasicPropModel = BasicProp(INPUT_DIST_KM, 0,0, INPUT_FREQ_GHz, 300, 1000, 
+            0, 0.1, 3, ClearAirModel::TxRxPair{20,20});	
+	
+	const double VAL_LOSS =  BasicPropModel.calcFreeSpacePathLoss_dB(INPUT_DIST_KM,INPUT_FREQ_GHz);
 
 	//Eq 8 Constant used has resolution up to 0.1 dB
 	EXPECT_NEAR(EXPECTED_LOSS,VAL_LOSS,0.05);
@@ -171,3 +177,5 @@ TEST(DataGridTests, fetchDataGridValuesN050Test){
 		EXPECT_NEAR(EXPECTED_N050[coordInd], TropoScatter::fetchSeaLevelSurfaceRefractivity(GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
 	}	
 }
+
+}//end namespace ClearAirModel

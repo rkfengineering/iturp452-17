@@ -2,7 +2,7 @@
 #include "Common/PhysicalConstants.h"
 #include <cmath>
 
-double CalculationHelpers::inv_cum_norm(double prob){
+double ClearAirModel::CalculationHelpers::inv_cum_norm(double prob){
     //if(prob>0.5){
     //    //Invalid input
     //    return std::nan;
@@ -21,6 +21,6 @@ double CalculationHelpers::inv_cum_norm(double prob){
     return ksi-tx;
 }
 
-double CalculationHelpers::convert_freqGHz_to_wavelength_m(const double& freq_GHz){
+double ClearAirModel::CalculationHelpers::convert_freqGHz_to_wavelength_m(const double& freq_GHz){
     return 1e-9*PhysicalConstants::SPEED_OF_LIGHT_M_PER_S/freq_GHz;
 }

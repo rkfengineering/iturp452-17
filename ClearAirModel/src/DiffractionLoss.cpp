@@ -8,9 +8,9 @@
 #include "Common/MathHelpers.h"
 #include "ClearAirModel/DiffractionLoss.h"
 #include "ClearAirModel/CalculationHelpers.h"
-#include "ClearAirModel/EffectiveEarth.h"
+#include "ClearAirModel/ClearAirModelHelpers.h"
 
-DiffractionLoss::DiffractionLoss(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m,
+ClearAirModel::DiffractionLoss::DiffractionLoss(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m,
     const double& freq_GHz, const double& deltaN, const Enumerations::PolarizationType& pol, 
     const double& p_percent, const double&b0_percent, const double& frac_over_sea):
     m_path{path}, m_height_tx_asl_m{height_tx_asl_m}, m_height_rx_asl_m{height_rx_asl_m},
@@ -31,15 +31,15 @@ DiffractionLoss::DiffractionLoss(const PathProfile::Path& path, const double& he
     m_diff_loss_p_percent_dB = calcDiffractionLoss_p_percent_dB();
 }
 
-double DiffractionLoss::calcDiffractionLoss_median_dB() const{
+double ClearAirModel::DiffractionLoss::calcDiffractionLoss_median_dB() const{
     //Median effective earth radius
-    const double medianEffectiveRadius_km = EffectiveEarth::calcMedianEffectiveRadius_km(m_deltaN);
+    const double medianEffectiveRadius_km = ClearAirModelHelpers::calcMedianEffectiveRadius_km(m_deltaN);
 
     //Delta Bullington Loss
     return calcDeltaBullingtonLoss_dB(medianEffectiveRadius_km);
 }
 
-double DiffractionLoss::calcDiffractionLoss_p_percent_dB() const{
+double ClearAirModel::DiffractionLoss::calcDiffractionLoss_p_percent_dB() const{
     if(m_p_percent>50 || m_p_percent < 0.001){
 		std::ostringstream oStrStream;
 		oStrStream << "ERROR: DiffractionLoss::calcDiffractionLoss_p_percent_dB(): " << 
@@ -53,7 +53,7 @@ double DiffractionLoss::calcDiffractionLoss_p_percent_dB() const{
     }
     else{ //m_p_percent<50
         //Delta Bullington Loss not exceeded for b0_percent% time
-        const double diffractionLoss_b0percent_dB = calcDeltaBullingtonLoss_dB(EffectiveEarth::k_eff_radius_bpercentExceeded_km);
+        const double diffractionLoss_b0percent_dB = calcDeltaBullingtonLoss_dB(ClearAirModelHelpers::k_eff_radius_bpercentExceeded_km);
 
         //interpolation factor 
         double Fi = 1;
@@ -65,7 +65,7 @@ double DiffractionLoss::calcDiffractionLoss_p_percent_dB() const{
     }
 }
 
-double DiffractionLoss::calcDeltaBullingtonLoss_dB(const double& eff_radius_p_km) const{
+double ClearAirModel::DiffractionLoss::calcDeltaBullingtonLoss_dB(const double& eff_radius_p_km) const{
 
     //Bullington Loss for the Actual Terrain
     const double Lbulla = calcBullingtonLoss_dB(m_path, m_height_tx_asl_m, m_height_rx_asl_m, eff_radius_p_km);
@@ -86,7 +86,7 @@ double DiffractionLoss::calcDeltaBullingtonLoss_dB(const double& eff_radius_p_km
     return Lbulla + std::max(Ldsph - Lbulls, 0.0);
 }
 
-double DiffractionLoss::calcBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m,
+double ClearAirModel::DiffractionLoss::calcBullingtonLoss_dB(const PathProfile::Path& path, const double& height_tx_asl_m,
         const double& height_rx_asl_m, const double& eff_radius_p_km) const{
     
     const double Ce = 1.0/eff_radius_p_km; //effective Earth Curvature
@@ -163,7 +163,7 @@ double DiffractionLoss::calcBullingtonLoss_dB(const PathProfile::Path& path, con
     return loss_knifeEdge_dB + (1-std::exp(-loss_knifeEdge_dB/6.0))*(10+0.02*m_d_tot_km); 
 }
 
-double DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(const double& eff_radius_p_km) const{
+double ClearAirModel::DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(const double& eff_radius_p_km) const{
 
     const double wavelength_m =  CalculationHelpers::convert_freqGHz_to_wavelength_m(m_freq_GHz); //wavelength in m
     //Equation 23 marginal LOS distance for a smooth m_path
@@ -205,7 +205,7 @@ double DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(const double& eff_r
     return (1.0-h_se/h_req_m)*loss_firstTerm_dB; //Eq 28
 }
 
-double DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_dB(const double& eff_radius_km) const{
+double ClearAirModel::DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_dB(const double& eff_radius_km) const{
 
     //Loss over land, relative permittivity = 22, conductivity = 0.003 S/m
     const double loss_firstTerm_land_dB = calcSphericalEarthDiffraction_firstTerm_helper_dB(22,0.003,eff_radius_km);
@@ -218,7 +218,7 @@ double DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_dB(const double&
 }
 
 
-double DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_helper_dB(const double& relPermittivity, 
+double ClearAirModel::DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_helper_dB(const double& relPermittivity, 
                                                     const double& conductivity,const double& eff_radius_km) const{
     
     //Normalized factor for surface admittance for Horizontal Polarization
@@ -296,7 +296,7 @@ double DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_helper_dB(const 
     return -Fx-GYt-GYr; //Eq 37
 }         
 
-EffectiveEarth::TxRxPair DiffractionLoss::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m() const{
+ClearAirModel::TxRxPair ClearAirModel::DiffractionLoss::calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m() const{
 
     const double d_tot = m_path.back().d_km; //assume distances start at 0
 
@@ -323,7 +323,7 @@ EffectiveEarth::TxRxPair DiffractionLoss::calcSmoothEarthTxRxHeights_Diffraction
     //Equations 166a, 166b
     //Tx,Rx heights from a least squares smooth m_path
     auto [height_smooth_tx_amsl_m,height_smooth_rx_amsl_m] = 
-            EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(m_path);
+            ClearAirModelHelpers::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(m_path);
 
     //Modify heights to compensate for obstructions
     if(height_obs_max>0){
@@ -339,5 +339,5 @@ EffectiveEarth::TxRxPair DiffractionLoss::calcSmoothEarthTxRxHeights_Diffraction
     double eff_height_tx_amsl_m = std::min(m_path.front().h_asl_m, height_smooth_tx_amsl_m); //Eq 167 a,b
     double eff_height_rx_amsl_m = std::min(m_path.back().h_asl_m, height_smooth_rx_amsl_m); //Eq 167 c,d
     
-    return EffectiveEarth::TxRxPair{eff_height_tx_amsl_m,eff_height_rx_amsl_m};
+    return ClearAirModel::TxRxPair{eff_height_tx_amsl_m,eff_height_rx_amsl_m};
 }

@@ -3,9 +3,12 @@
 
 #include "gtest/gtest.h"
 #include "PathProfile.h"
-#include "EffectiveEarth.h"
+#include "ClearAirModelHelpers.h"
 #include "Common/Enumerations.h"
 
+namespace ClearAirModel{
+
+//Section 4.2 Delta Bullington Diffraction Loss not exceeded for a given annual percentage time
 class DiffractionLoss {
 
 FRIEND_TEST(DeltaBullingtonTests, calculateDiffractionModelSmoothEarthHeightsTest);
@@ -129,10 +132,10 @@ private:
     /// @param height_tx_asl_m      Tx antenna height above ground level (m)
     /// @param height_rx_asl_m      Rx antenna height above ground level (m)
     /// @return Tx,Rx effective smooth earth path heights for the diffraction model (amsl) (m)
-    EffectiveEarth::TxRxPair calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m() const;
+    ClearAirModel::TxRxPair calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m() const;
 
-};//end namespace DiffractionLoss
-
+};//end class DiffractionLoss
+} //end namespace ClearAirModel
 #endif /* DIFFRACTION_LOSS_H */
 
 

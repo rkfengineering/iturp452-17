@@ -1,19 +1,20 @@
-#include "ClearAirModel/EffectiveEarth.h"
+#include "ClearAirModel/ClearAirModelHelpers.h"
 #include "ClearAirModel/CalculationHelpers.h"
 #include "Common/PhysicalConstants.h"
+#include "GasModel/GasAttenuationHelpers.h"
 #include <limits>
 #include <cmath>
 #include <iostream>
 #include <ostream>
 #include <sstream>
 
-double EffectiveEarth::calcMedianEffectiveRadius_km(const double& delta_N){
+double ClearAirModel::ClearAirModelHelpers::calcMedianEffectiveRadius_km(const double& delta_N){
     const double k50 = 157.0/(157.0-delta_N); //Eq 5
     return 6371.0 * k50; //Eq 6a
 }
 
 //Least Squares linear approximation of the actual path
-EffectiveEarth::TxRxPair EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(const PathProfile::Path& path){
+ClearAirModel::TxRxPair ClearAirModel::ClearAirModelHelpers::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(const PathProfile::Path& path){
 
     const double d_tot = path.back().d_km; //assume distances start at 0
     //Section 5.1.6.2
@@ -34,10 +35,10 @@ EffectiveEarth::TxRxPair EffectiveEarth::calcLeastSquaresSmoothEarthTxRxHeights_
     //Equation 164 Tx least squares model height 
     const double height_rx_amsl_m = (v2-v1*d_tot)/(d_tot*d_tot);   
 
-    return EffectiveEarth::TxRxPair{height_tx_amsl_m,height_rx_amsl_m};
+    return ClearAirModel::TxRxPair{height_tx_amsl_m,height_rx_amsl_m};
 }
 
-EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::calcHorizonAnglesAndDistances(const PathProfile::Path& path,
+ClearAirModel::HorizonAnglesAndDistances ClearAirModel::ClearAirModelHelpers::calcHorizonAnglesAndDistances(const PathProfile::Path& path,
             const double& height_tx_asl_m, const double& height_rx_asl_m, const double& eff_radius_med_km, const double& freq_GHz){
 
     const double d_tot = path.back().d_km;
@@ -141,13 +142,13 @@ EffectiveEarth::HorizonAnglesAndDistances EffectiveEarth::calcHorizonAnglesAndDi
         horizonDist_rx_km = d_tot - horizonDist_tx_km;
     }
 
-    return EffectiveEarth::HorizonAnglesAndDistances{
-        EffectiveEarth::TxRxPair{horizonElevation_tx_mrad,horizonElevation_rx_mrad},
-        EffectiveEarth::TxRxPair{horizonDist_tx_km,horizonDist_rx_km}
+    return ClearAirModel::HorizonAnglesAndDistances{
+        ClearAirModel::TxRxPair{horizonElevation_tx_mrad,horizonElevation_rx_mrad},
+        ClearAirModel::TxRxPair{horizonDist_tx_km,horizonDist_rx_km}
     };
 }
 
-double EffectiveEarth::calcPathAngularDistance_mrad(const EffectiveEarth::TxRxPair& elevationAngles_mrad, 
+double ClearAirModel::ClearAirModelHelpers::calcPathAngularDistance_mrad(const ClearAirModel::TxRxPair& elevationAngles_mrad, 
         const double& dtot_km, const double& eff_radius_med_km){
 
     const auto [txHorizonAngle_mrad, rxHorizonAngle_mrad] = elevationAngles_mrad;
@@ -155,4 +156,17 @@ double EffectiveEarth::calcPathAngularDistance_mrad(const EffectiveEarth::TxRxPa
     return 1e3*dtot_km/eff_radius_med_km + txHorizonAngle_mrad + rxHorizonAngle_mrad;
 }
 
+double ClearAirModel::ClearAirModelHelpers::calcGasAtten_dB(const double& d_los_km, const double& freq_GHz, const double& temp_K, 
+                                        const double& dryPressure_hPa, const double& waterVaporDensity_g_m3){
 
+    //Equation 4 from ITU-R P.676-13
+    const double waterVapor_hPa = waterVaporDensity_g_m3 * temp_K / 216.7;
+
+    const double totalPressure_hPa = dryPressure_hPa + waterVapor_hPa;
+
+    //Validation data from ITU uses P676-13 with frequencies below 1 GHz 
+    const double specificAttenuation_dBPerKm = GasAttenuationHelpers::calculateSpecificTotalAttenuation_dBPerKm(
+                                            freq_GHz, temp_K, totalPressure_hPa, waterVapor_hPa);
+    // Equation 9
+    return specificAttenuation_dBPerKm * d_los_km;
+}

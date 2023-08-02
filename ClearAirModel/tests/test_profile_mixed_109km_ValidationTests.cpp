@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "test_profile_mixed_109km.h"
-#include "ClearAirModel/EffectiveEarth.h"
+#include "ClearAirModel/ClearAirModelHelpers.h"
 #include "ClearAirModel/BasicProp.h"
 #include "ClearAirModel/DiffractionLoss.h"
 #include "ClearAirModel/TropoScatter.h"
@@ -31,11 +31,13 @@ namespace {
 //allocate memory for the path
 PathProfile::Path MixedProfileTests::K_PATH;
 
+namespace ClearAirModel{
+
 //From intermediate values in test_result_mixed_109.csv
-TEST(EffectiveEarthTests, calcMedianEffRadiusTest){
+TEST(ClearAirModelHelpersTests, calcMedianEffRadiusTest){
     const double INPUT_DN = 53;
     const double EXPECTED_AE = 9617.759615;
-	const double VAL_AE = EffectiveEarth::calcMedianEffectiveRadius_km(INPUT_DN);
+	const double VAL_AE = ClearAirModelHelpers::calcMedianEffectiveRadius_km(INPUT_DN);
 
 	EXPECT_NEAR(EXPECTED_AE,VAL_AE,TOLERANCE_STRICT);
 }
@@ -70,7 +72,7 @@ TEST(ProfilePathTests, calcLongestContiguousInlandDistanceTest){
 
 //check horizon elevation angle and distance calculations using mixed terrain path
 //transhorizon path tested
-TEST(EffectiveEarthTests, calcHorizonAnglesAndDistances_TranshorizonTest){
+TEST(ClearAirModelHelpersTests, calcHorizonAnglesAndDistances_TranshorizonTest){
     const PathProfile::Path p(clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv"));
     const double HTG = 10;
     const double HRG = 10;
@@ -79,14 +81,14 @@ TEST(EffectiveEarthTests, calcHorizonAnglesAndDistances_TranshorizonTest){
 
     const double HTS_MASL = HTG+p.front().h_asl_m;
     const double HRS_MASL = HRG+p.back().h_asl_m;
-    const double EFF_RADIUS_MED_KM = EffectiveEarth::calcMedianEffectiveRadius_km(DN);
+    const double EFF_RADIUS_MED_KM = ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
 
     const double EXPECTED_THETA_T = -0.6342118;
     const double EXPECTED_THETA_R = -1.390039674;
     const double EXPECTED_DLT = 28;
     const double EXPECTED_DLR = 11;
 
-    const auto [HorizonAngles, HorizonDistances] = EffectiveEarth::calcHorizonAnglesAndDistances(
+    const auto [HorizonAngles, HorizonDistances] = ClearAirModelHelpers::calcHorizonAnglesAndDistances(
         p,
         HTS_MASL,
         HRS_MASL,
@@ -103,16 +105,16 @@ TEST(EffectiveEarthTests, calcHorizonAnglesAndDistances_TranshorizonTest){
 }
 
 //check path angular distance calculations using intermediate values
-TEST(EffectiveEarthTests, calcPathAngularDistance){
+TEST(ClearAirModelHelpersTests, calcPathAngularDistance){
     const double INPUT_DIST = 109;
     const double INPUT_THETA_T = -0.6342118;
     const double INPUT_THETA_R = -1.390039674;
 
     const double INPUT_DN = 53;
-	const double MEDIAN_EFFECTIVE_RADIUS = EffectiveEarth::calcMedianEffectiveRadius_km(INPUT_DN);
+	const double MEDIAN_EFFECTIVE_RADIUS = ClearAirModelHelpers::calcMedianEffectiveRadius_km(INPUT_DN);
 
-    const double VAL_THETA = EffectiveEarth::calcPathAngularDistance_mrad(
-        EffectiveEarth::TxRxPair{INPUT_THETA_T,INPUT_THETA_R},INPUT_DIST,MEDIAN_EFFECTIVE_RADIUS
+    const double VAL_THETA = ClearAirModelHelpers::calcPathAngularDistance_mrad(
+        ClearAirModel::TxRxPair{INPUT_THETA_T,INPUT_THETA_R},INPUT_DIST,MEDIAN_EFFECTIVE_RADIUS
     );
 
     const double EXPECTED_THETA = 9.308949225;
@@ -120,7 +122,7 @@ TEST(EffectiveEarthTests, calcPathAngularDistance){
     EXPECT_NEAR(EXPECTED_THETA,VAL_THETA,TOLERANCE_STRICT);
 }
 
-TEST(BasicPropTests, calcPathLossWithGasAndMultipathTest){
+TEST_F(MixedProfileTests, BasicPropTests_calcPathLossWithGasAndMultipathTest){
 	// Arrange
 	const std::vector<double> FREQ_GHZ_LIST = {
 		0.2,0.1,0.15,0.225,0.3375,0.50625,0.759375,1.1390625,
@@ -133,22 +135,11 @@ TEST(BasicPropTests, calcPathLossWithGasAndMultipathTest){
         0.1,0.1,0.1,1,4,7,10,13,16,19,22,25,28,31,34,37,40,43,46,49,
     };
 
-    const PathProfile::Path p(clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv"));
-    const double HTG = 10;
-    const double HRG = 10;
-    const double TEMP_C = 15;
-    const double DRY_PRESSURE_HPA = 1013;
-    const double DN = 53;
-    const double PHI_T = 51.2;
-    const double PHI_R = 50.73;
-
-    const double HTS_MASL = HTG+p.front().h_asl_m;
-    const double HRS_MASL = HRG+p.back().h_asl_m;
-    const double TEMP_K = TEMP_C + 273.15;
-    const double SEA_FRAC = p.calcFracOverSea();
-    const double EFF_RADIUS_MED_KM = EffectiveEarth::calcMedianEffectiveRadius_km(DN);
-    const double INPUT_LAT = (PHI_T+PHI_R)/2.0;
-    const double VAL_B0= p.calcTimePercentBeta0(INPUT_LAT);
+    const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
+    const double HTS_MASL = HTG+K_PATH.front().h_asl_m;
+    const double HRS_MASL = HRG+K_PATH.back().h_asl_m;
+    const double EFF_RADIUS_MED_KM = ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
+    const double SEA_FRAC = K_PATH.calcFracOverSea();
 
     const std::vector<double> EXPECTED_LBFSG = {
         119.2505028,113.1705634,116.7182677,120.2924512,123.9090093,127.5721488,
@@ -178,30 +169,18 @@ TEST(BasicPropTests, calcPathLossWithGasAndMultipathTest){
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
 
-        const auto [HorizonAngles, HorizonDistances] = EffectiveEarth::calcHorizonAnglesAndDistances(
-            p, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]
+        const auto [HorizonAngles, HorizonDistances] = ClearAirModelHelpers::calcHorizonAnglesAndDistances(
+            K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]
         );
-        const auto [horizonDist_tx_km, horizonDist_rx_km] = HorizonDistances;
 
-        const double VAL_LBFSG = BasicProp::calcPathLossWithGas_dB(
-            p.back().d_km,
-            HTS_MASL,
-            HRS_MASL,
-            FREQ_GHZ_LIST[freqInd],
-            TEMP_K,
-            DRY_PRESSURE_HPA,
-            SEA_FRAC
-        );
-        const double VAL_LB0P = VAL_LBFSG + BasicProp::calcMultipathFocusingCorrection_dB(
-            horizonDist_tx_km,
-            horizonDist_rx_km,
-            P_LIST[freqInd]
-        );
-        const double VAL_LB0B = VAL_LBFSG + BasicProp::calcMultipathFocusingCorrection_dB(
-            horizonDist_tx_km,
-            horizonDist_rx_km,
-            VAL_B0
-        );
+        const auto BasicPropModel = BasicProp(K_PATH.back().d_km, HTS_MASL,HRS_MASL, FREQ_GHZ_LIST[freqInd],
+                TEMP_K, DRY_PRESSURE_HPA, SEA_FRAC,P_LIST[freqInd],B0_PERCENT,HorizonDistances);
+
+        const double VAL_LBFSG = BasicPropModel.getFreeSpaceWithGasLoss_dB();
+
+        const double VAL_LB0P = BasicPropModel.getBasicTransmissionLoss_p_percent_dB();
+        const double VAL_LB0B = BasicPropModel.getBasicTransmissionLoss_b0_percent_dB();
+
         EXPECT_NEAR(EXPECTED_LBFSG[freqInd],VAL_LBFSG,TOLERANCE_STRICT);
         EXPECT_NEAR(EXPECTED_LB0P[freqInd],VAL_LB0P,TOLERANCE_STRICT);
         EXPECT_NEAR(EXPECTED_LB0B[freqInd],VAL_LB0B,TOLERANCE_STRICT);
@@ -220,7 +199,7 @@ TEST_F(MixedProfileTests,DiffractionLossTests_calcSphericalEarthDiffractionLossT
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double HTS_MASL = HTG+K_PATH.front().h_asl_m;
     const double HRS_MASL = HRG+K_PATH.back().h_asl_m;
-    const double EFF_RADIUS_MED_KM = EffectiveEarth::calcMedianEffectiveRadius_km(DN);
+    const double EFF_RADIUS_MED_KM = ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
     const double SEA_FRAC = K_PATH.calcFracOverSea();
 
     const std::vector<double> EXPECTED_LDSPH = {
@@ -338,16 +317,15 @@ TEST(TroposcatterLossTests, calcTroposcatterLossTest){
     const double D_TOT_KM = p.back().d_km;
     const double HTS_MASL = HTG+p.front().h_asl_m;
     const double HRS_MASL = HRG+p.back().h_asl_m;
-    const double EFF_RADIUS_MED_KM = EffectiveEarth::calcMedianEffectiveRadius_km(DN);
+    const double EFF_RADIUS_MED_KM = ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
 
-    const auto [HorizonAngles, HorizonDistances] = EffectiveEarth::calcHorizonAnglesAndDistances(
+    const auto [HorizonAngles, HorizonDistances] = ClearAirModelHelpers::calcHorizonAnglesAndDistances(
         p,
         HTS_MASL,
         HRS_MASL,
         EFF_RADIUS_MED_KM,
         FREQ_GHZ
     );
-    const auto PATH_ANGULAR_DIST_MRAD = EffectiveEarth::calcPathAngularDistance_mrad(HorizonAngles,D_TOT_KM,EFF_RADIUS_MED_KM);
 
     //basic transmission loss from troposcatter
     const std::vector<double> EXPECTED_LBS = {
@@ -365,7 +343,8 @@ TEST(TroposcatterLossTests, calcTroposcatterLossTest){
             FREQ_GHZ_LIST[freqInd],
             HTS_MASL,
             HRS_MASL,
-            PATH_ANGULAR_DIST_MRAD,
+            HorizonAngles,
+            EFF_RADIUS_MED_KM,
             SEA_LEVEL_SURFACE_REFRACTIVITY,
             TX_GAIN,
             RX_GAIN,
@@ -378,7 +357,6 @@ TEST(TroposcatterLossTests, calcTroposcatterLossTest){
     }
 }
 
-
 TEST_F(MixedProfileTests, AnomolousProp_calcSmoothEarthTxRxHeights_DuctingModel_Test){
     const double FREQ_GHZ = 0.2;
     const double P_PERCENT = 0.1;
@@ -386,15 +364,15 @@ TEST_F(MixedProfileTests, AnomolousProp_calcSmoothEarthTxRxHeights_DuctingModel_
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double HTS_MASL = HTG+K_PATH.front().h_asl_m;
     const double HRS_MASL = HRG+K_PATH.back().h_asl_m;
-    const double EFF_RADIUS_MED_KM = EffectiveEarth::calcMedianEffectiveRadius_km(DN);
+    const double EFF_RADIUS_MED_KM = ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
     const double SEA_FRAC = K_PATH.calcFracOverSea();
 
     const double EXPECTED_TX_HEIGHT_M = 44.58294756;
     const double EXPECTED_RX_HEIGHT_M = 121.8941167;
 
     const auto HORIZON_VALS = 
-        EffectiveEarth::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ);
-    const AnomolousProp AnomolousModel = AnomolousProp(
+        ClearAirModelHelpers::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ);
+    const auto AnomolousModel = ClearAirModel::AnomolousProp(
         K_PATH,
         FREQ_GHZ,
         HTS_MASL,
@@ -422,14 +400,14 @@ TEST_F(MixedProfileTests, AnomolousProp_calcTerrainRoughnessTest){
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double HTS_MASL = HTG+K_PATH.front().h_asl_m;
     const double HRS_MASL = HRG+K_PATH.back().h_asl_m;
-    const double EFF_RADIUS_MED_KM = EffectiveEarth::calcMedianEffectiveRadius_km(DN);
+    const double EFF_RADIUS_MED_KM = ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
     const double SEA_FRAC = K_PATH.calcFracOverSea();
 
     const double EXPECTED_TERRAIN_ROUGHNESS = 119.5232647;
 
     const auto HORIZON_VALS = 
-        EffectiveEarth::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ);
-    const AnomolousProp AnomolousModel = AnomolousProp(
+        ClearAirModelHelpers::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ);
+    const auto AnomolousModel = ClearAirModel::AnomolousProp(
         K_PATH,
         FREQ_GHZ,
         HTS_MASL,
@@ -455,7 +433,7 @@ TEST_F(MixedProfileTests, AnomolousProp_calcAnomolousPropLossTest){
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double HTS_MASL = HTG+K_PATH.front().h_asl_m;
     const double HRS_MASL = HRG+K_PATH.back().h_asl_m;
-    const double EFF_RADIUS_MED_KM = EffectiveEarth::calcMedianEffectiveRadius_km(DN);
+    const double EFF_RADIUS_MED_KM = ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
     const double SEA_FRAC = K_PATH.calcFracOverSea();
 
     //basic transmission loss from ducting/layer refraction
@@ -470,8 +448,8 @@ TEST_F(MixedProfileTests, AnomolousProp_calcAnomolousPropLossTest){
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
         const auto HORIZON_VALS = 
-            EffectiveEarth::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]);
-        const auto AnomolousModel = AnomolousProp(
+            ClearAirModelHelpers::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]);
+        const auto AnomolousModel = ClearAirModel::AnomolousProp(
             K_PATH,
             FREQ_GHZ_LIST[freqInd],
             HTS_MASL,
@@ -517,7 +495,7 @@ TEST(P452TotalAttenuationTests, calcP452TotalAttenuationTest){
     const double DIST_COAST_RX = 500;
     const double DRY_PRESSURE_HPA = 1013;
     const double TEMP_C = 15;
-    const double CLUTTER_PARAMS = 0;//TODO write these out
+    const ClutterType CLUTTER_PARAMS = ClutterType::NoClutter;//TODO write these out
     const auto POL = Enumerations::PolarizationType::HorizontalPolarized;
 
     const double INPUT_LAT = (PHI_T+PHI_R)/2.0;
@@ -535,7 +513,7 @@ TEST(P452TotalAttenuationTests, calcP452TotalAttenuationTest){
     };
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
-        const double LOSS_VAL = p452_TotalAttenuation::calcP452TotalAttenuation(
+        const auto p452Model = p452_TotalAttenuation(
             FREQ_GHZ_LIST[freqInd],
             P_LIST[freqInd],
             path,
@@ -552,10 +530,11 @@ TEST(P452TotalAttenuationTests, calcP452TotalAttenuationTest){
             TEMP_K,
             DRY_PRESSURE_HPA,
             CLUTTER_PARAMS,
-            CLUTTER_PARAMS,
-            CLUTTER_PARAMS,
             CLUTTER_PARAMS
         );
+        double LOSS_VAL = p452Model.getTotalTransmissionLoss_dB();
         EXPECT_NEAR(EXPECTED_LOSS[freqInd],LOSS_VAL,TOLERANCE);
     }
 }
+
+}//end namespace ClearAirModel

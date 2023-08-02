@@ -3,7 +3,7 @@
 
 //TODO figure out where to put this. maybe add to mathhelpers
 
-namespace CalculationHelpers{
+namespace ClearAirModel::CalculationHelpers{
 
     //From ITU-R P.452-17 Annex 1 Attachment 3
 

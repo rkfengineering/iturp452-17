@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "DeltaBullingtonTests.h"
 #include "ClearAirModel/DiffractionLoss.h"
-#include "ClearAirModel/EffectiveEarth.h"
+#include "ClearAirModel/ClearAirModelHelpers.h"
 
 //Validation data from ITU validation spreadsheet titled "delB_valid_temp.xlsx", page "outputs"
 //embedded in ITU validation document titled "Validation Examples for the delta Bullington diffraction prediction method"
@@ -13,6 +13,8 @@ namespace {
 }
 //allocate memory for the list of paths
 std::vector<PathProfile::Path> DeltaBullingtonTests::m_profile_list={};
+
+namespace ClearAirModel{
 
 TEST_F(DeltaBullingtonTests, calculateDiffractionModelSmoothEarthHeightsTest){
     // Arrange
@@ -390,4 +392,4 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSmoothEarthBullingtonLossTest){
     }
 }
 
-
+}//end namespace ClearAirModel

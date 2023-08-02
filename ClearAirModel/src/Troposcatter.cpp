@@ -1,4 +1,5 @@
 #include "ClearAirModel/TropoScatter.h"
+#include "ClearAirModel/CalculationHelpers.h"
 #include "Common/MathHelpers.h"
 #include <filesystem>
 #include <iostream>
@@ -9,8 +10,8 @@
 //data grid object to store surface refractivity (N0) data
 static const DataGrid2 seaLevelSurfaceRefractivityMap{CMAKE_CLEARAIR_SRC_DIR / std::filesystem::path("data/N050.TXT"),1.5};
 
-double TropoScatter::calcTroposcatterLoss_dB(const double& d_tot_km, const double& freq_GHz, const double& height_tx_asl_m,
-        const double& height_rx_asl_m, const double& path_angular_distance_mrad, 
+double ClearAirModel::TropoScatter::calcTroposcatterLoss_dB(const double& d_tot_km, const double& freq_GHz, const double& height_tx_asl_m,
+        const double& height_rx_asl_m, const ClearAirModel::TxRxPair&elevationAngles_mrad, const double& eff_radius_med_km,
         const double& seaLevelSurfaceRefractivity, const double& txHorizonGain_dBi, const double& rxHorizonGain_dBi, 
         const double& temp_K, const double& dryPressure_hPa, const double& p_percent){
 
@@ -21,6 +22,8 @@ double TropoScatter::calcTroposcatterLoss_dB(const double& d_tot_km, const doubl
 			<< p_percent << " %!" << std::endl;
 		throw std::domain_error(oStrStream.str());
 	}
+
+    const double path_angular_distance_mrad = ClearAirModelHelpers::calcPathAngularDistance_mrad(elevationAngles_mrad,d_tot_km,eff_radius_med_km);
 
     //Equation 45a     
     const double frequencyDependentLoss_dB = 25.0*std::log10(freq_GHz)-2.5*MathHelpers::simpleSquare(std::log10(freq_GHz/2.0));
@@ -34,7 +37,7 @@ double TropoScatter::calcTroposcatterLoss_dB(const double& d_tot_km, const doubl
                                         MathHelpers::simpleSquare((height_tx_asl_m-height_rx_asl_m)/1000.0));
     //Equation 9 using rho = 3 g/m^3
     //The extra path length from considering the antenna heights is insignificant
-    const double gasAtten_dB = BasicProp::calcGasAtten_dB(d_los_km,freq_GHz,temp_K,dryPressure_hPa,3.0);
+    const double gasAtten_dB = ClearAirModelHelpers::calcGasAtten_dB(d_los_km,freq_GHz,temp_K,dryPressure_hPa,3.0);
 
     //Equation 45 Empirical troposcatter loss model
     return 190.0 + frequencyDependentLoss_dB + 20.0*std::log10(d_tot_km) + 0.573*path_angular_distance_mrad
@@ -42,6 +45,6 @@ double TropoScatter::calcTroposcatterLoss_dB(const double& d_tot_km, const doubl
             -10.1*std::pow(-std::log10(p_percent/50.0),0.7);
 }
 
-double TropoScatter::fetchSeaLevelSurfaceRefractivity(const GeodeticCoord& location){
+double ClearAirModel::TropoScatter::fetchSeaLevelSurfaceRefractivity(const GeodeticCoord& location){
     return seaLevelSurfaceRefractivityMap.interpolate2D(location);
 }

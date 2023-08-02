@@ -1,9 +1,9 @@
-#ifndef EFFECTIVE_EARTH_H
-#define EFFECTIVE_EARTH_H
+#ifndef CLEAR_AIR_MODEL_HELPERS_H
+#define CLEAR_AIR_MODEL_HELPERS_H
 
 #include "PathProfile.h"
 
-namespace EffectiveEarth{
+namespace ClearAirModel{
 
     //Pair for returning tx (first) and rx (second) values
     using TxRxPair = std::pair<double,double>;
@@ -11,6 +11,9 @@ namespace EffectiveEarth{
     //Pair for returning horizon angles(mrad) (first) and horizon distances(km) (second)
     using HorizonAnglesAndDistances = std::pair<TxRxPair,TxRxPair>;
 
+}
+
+namespace ClearAirModel::ClearAirModelHelpers{
     //Eq 6b, Median Effective Earth radius exceeded for b% of time
     //kb = 3 at Point Incidence of anomalous propagation b0
     constexpr double k_eff_radius_bpercentExceeded_km = 6371.0 * 3.0; 
@@ -44,6 +47,15 @@ namespace EffectiveEarth{
     /// @param eff_radius_med_km    Median effective Earth's radius (km)
     /// @return Path Angular Distance parameter (mrad)
     double calcPathAngularDistance_mrad(const TxRxPair& elevationAngles_mrad, const double& dtot_km, const double& eff_radius_med_km);
-
+    
+    /// @brief Calculate gaseous attenuation using ITU-R P.676-13 without standard atmospheric parameters
+    /// @param d_los_km                 Line of sight Distance between Tx and Rx antennas (km)
+    /// @param freq_GHz                 Frequency (GHz)
+    /// @param temp_K                   Temperature (K)
+    /// @param dryPressure_hPa          Dry air pressure (hPa)
+    /// @param waterVaporDensity_g_m3   Water Vapor Density (g/m3)
+    /// @return gas attenuation (dB)
+    double calcGasAtten_dB(const double& d_los_km, const double& freq_GHz, const double& temp_K, 
+                                const double& dryPressure_hPa, const double& waterVaporDensity_g_m3);
 }
-#endif /* EFFECTIVE_EARTH_H */
+#endif /* CLEAR_AIR_MODEL_HELPERS_H */
