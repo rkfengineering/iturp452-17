@@ -4,7 +4,7 @@
 #include "ClearAirModel/BasicProp.h"
 #include "ClearAirModel/DiffractionLoss.h"
 #include "ClearAirModel/TropoScatter.h"
-#include "ClearAirModel/AnomolousProp.h"
+#include "ClearAirModel/AnomalousProp.h"
 #include "ClearAirModel/P452TotalAttenuation.h"
 #include <filesystem>
 
@@ -262,7 +262,7 @@ TEST_F(FlatLand100kmProfileTests, calcHorizonAnglesAndDistances_LineOfSightTest)
     EXPECT_NEAR(EXPECTED_DLR,horizonDist_rx_km,TOLERANCE_STRICT);
 }
 //no direct unit test for the helpers yet. they're all lumped together in this validation data check
-TEST_F(FlatLand100kmProfileTests, AnomolousProp_calcAnomolousPropLossTest){
+TEST_F(FlatLand100kmProfileTests, AnomalousProp_calcAnomalousPropLossTest){
 
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double EFF_RADIUS_MED_KM = ClearAirModel::ClearAirModelHelpers::calcMedianEffectiveRadius_km(DN);
@@ -289,7 +289,7 @@ TEST_F(FlatLand100kmProfileTests, AnomolousProp_calcAnomolousPropLossTest){
 
         const auto HORIZON_VALS = ClearAirModel::ClearAirModelHelpers::calcHorizonAnglesAndDistances(
             mod_path, height_tx_asl_m, height_rx_asl_m, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]);
-        const auto AnomolousModel = ClearAirModel::AnomolousProp(
+        const auto AnomalousModel = ClearAirModel::AnomalousProp(
             mod_path,
             FREQ_GHZ_LIST[freqInd],
             height_tx_asl_m,
@@ -304,7 +304,7 @@ TEST_F(FlatLand100kmProfileTests, AnomolousProp_calcAnomolousPropLossTest){
             HORIZON_VALS,
             SEA_FRAC
         );
-        const double LOSS_VAL = AnomolousModel.getAnomolousPropLoss_dB();
+        const double LOSS_VAL = AnomalousModel.getAnomalousPropLoss_dB();
         EXPECT_NEAR(EXPECTED_LBA[freqInd],LOSS_VAL,TOLERANCE);
     }
 }

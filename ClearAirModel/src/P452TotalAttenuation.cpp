@@ -64,11 +64,11 @@ void ClearAirModel::p452_TotalAttenuation::calculateSubModels(const double& temp
     m_diffractionLoss_p_percent_dB = DiffractionModel.getDiffractionLoss_p_percent_dB();
     m_diffractionLoss_median_dB = DiffractionModel.getDiffractionLoss_median_dB();
 
-    //Anomolous Propagation Calculations (Ducting and Layer Reflection)
-    const auto AnomolousPropModel = ClearAirModel::AnomolousProp(m_mod_path, m_freq_GHz, m_height_tx_asl_m, 
+    //Anomalous Propagation Calculations (Ducting and Layer Reflection)
+    const auto AnomalousPropModel = ClearAirModel::AnomalousProp(m_mod_path, m_freq_GHz, m_height_tx_asl_m, 
         m_height_rx_asl_m, temp_K, dryPressure_hPa, dist_coast_tx_km, dist_coast_rx_km, m_p_percent,
         m_b0_percent, m_effEarthRadius_med_km, m_HorizonVals, m_fracOverSea);
-    m_anomolousPropagationLoss_dB = AnomolousPropModel.getAnomolousPropLoss_dB();
+    m_anomalousPropagationLoss_dB = AnomalousPropModel.getAnomalousPropLoss_dB();
     
     //Calculate Tropospheric Scatter
     m_tropoScatterLoss_dB = TropoScatter::calcTroposcatterLoss_dB(m_d_tot_km,m_freq_GHz,m_height_tx_asl_m,
@@ -99,15 +99,15 @@ double ClearAirModel::p452_TotalAttenuation::calcP452TotalAttenuation(){
 
     //Equation 61 (Lminbap)
     constexpr double eta = 2.5; //constant parameter
-    const double minLossWithAnomolousPropagation_dB = 
-                eta*std::log(std::exp(m_anomolousPropagationLoss_dB/eta)+std::exp(m_basicTransmissionLoss_p_percent_dB/eta));
+    const double minLossWithAnomalousPropagation_dB = 
+                eta*std::log(std::exp(m_anomalousPropagationLoss_dB/eta)+std::exp(m_basicTransmissionLoss_p_percent_dB/eta));
 
     //Fk
     const double pathBlendingInterpolationParameter = p452_TotalAttenuation::calcPathBlendingInterpolationParameter(m_d_tot_km);
     //Equation 62 (Lbda)
-    double diffractionAndAnomolousPropagationLoss_dB = basicWithDiffractionLoss_p_percent_dB;
-    if(minLossWithAnomolousPropagation_dB <= basicWithDiffractionLoss_p_percent_dB){
-        diffractionAndAnomolousPropagationLoss_dB = MathHelpers::interpolate1D(minLossWithAnomolousPropagation_dB,
+    double diffractionAndAnomalousPropagationLoss_dB = basicWithDiffractionLoss_p_percent_dB;
+    if(minLossWithAnomalousPropagation_dB <= basicWithDiffractionLoss_p_percent_dB){
+        diffractionAndAnomalousPropagationLoss_dB = MathHelpers::interpolate1D(minLossWithAnomalousPropagation_dB,
                                                     basicWithDiffractionLoss_p_percent_dB,pathBlendingInterpolationParameter);
     }
 
@@ -115,13 +115,13 @@ double ClearAirModel::p452_TotalAttenuation::calcP452TotalAttenuation(){
     const double slopeInterpolationParameter = 
         p452_TotalAttenuation::calcSlopeInterpolationParameter(m_mod_path,m_effEarthRadius_med_km,m_height_tx_asl_m,m_height_rx_asl_m);
     //Equation 63 (Lbam)
-    const double modifiedDiffractionAndAnomolousPropagationLoss_dB = 
-                                                    MathHelpers::interpolate1D(diffractionAndAnomolousPropagationLoss_dB, 
+    const double modifiedDiffractionAndAnomalousPropagationLoss_dB = 
+                                                    MathHelpers::interpolate1D(diffractionAndAnomalousPropagationLoss_dB, 
                                                     minLossWithOverSeaSubPathDiffraction_dB,slopeInterpolationParameter);
 
     //Equation 64 Total Loss predicted by model, combines losses using a geometric mean of the linear values
     const double val1 = std::pow(10.0, -0.2*m_tropoScatterLoss_dB);
-    const double val2 = std::pow(10.0, -0.2*modifiedDiffractionAndAnomolousPropagationLoss_dB);
+    const double val2 = std::pow(10.0, -0.2*modifiedDiffractionAndAnomalousPropagationLoss_dB);
     return -5.0 * std::log10(val1+val2)+ m_tx_clutterLoss_dB + m_rx_clutterLoss_dB;
 }
 

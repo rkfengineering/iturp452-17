@@ -6,7 +6,7 @@
 #include "BasicProp.h"
 #include "DiffractionLoss.h"
 #include "TropoScatter.h"
-#include "AnomolousProp.h"
+#include "AnomalousProp.h"
 #include "ClutterLoss.h"
 #include "Common/GeodeticCoord.h"
 #include "Common/Enumerations.h"
@@ -69,7 +69,7 @@ private:
     double m_basicTransmissionLoss_b0_percent_dB; //free space loss with gas atten and multipath focusing correction for b0 percent of time
     double m_diffractionLoss_p_percent_dB;        //Get diffraction Loss not exceeded for p percent of time (annual) (dB)
     double m_diffractionLoss_median_dB;           //Get diffraction Loss not exceeded for p=50% (dB)
-    double m_anomolousPropagationLoss_dB;         //Transmission Loss with ducting and layer reflection (dB)
+    double m_anomalousPropagationLoss_dB;         //Transmission Loss with ducting and layer reflection (dB)
     double m_tropoScatterLoss_dB;                 //Loss due to troposcatter (dB)
     double m_tx_clutterLoss_dB;                   //loss associated with clutter shielding at tx
     double m_rx_clutterLoss_dB;                   //loss associated with clutter shielding at rx

@@ -83,6 +83,23 @@ TEST(HelpersTests, InvCumNormTest){
 	EXPECT_NEAR(CalculationHelpers::inv_cum_norm(1e-7), CalculationHelpers::inv_cum_norm(1e-6), TOLERANCE);
 }
 
+//Check frequency to wavelength conversion using values from 
+//https://www.translatorscafe.com/unit-converter/en-US/frequency-wavelength/5-27/gigahertz-wavelength%20in%20metres/
+TEST(HelpersTests, convertFreqGHzToWavelengthMTest){
+	const std::vector<double> INPUT_FREQ_GHZ_LIST = {
+		0.5,1.0,2.0,10.0
+	};
+	const std::vector<double> EXPECTED_WAVELENGTH_M_LIST = {
+		0.599584916,0.299792458,0.149896229,0.0299792458
+	};
+
+	for (uint16_t ind = 0; ind < INPUT_FREQ_GHZ_LIST.size(); ind++) {
+		const double OUTPUT = CalculationHelpers::convert_freqGHz_to_wavelength_m(INPUT_FREQ_GHZ_LIST[ind]);
+		//Maximum error of 0.00054 from Attachment 3 to Annex 1 ITU-R P.452-17
+		EXPECT_NEAR(EXPECTED_WAVELENGTH_M_LIST[ind], OUTPUT, TOLERANCE);
+	}
+}
+
 //This helper function returns the endpoints of a least squares smooth earth approximation
 //This is used in calcSmoothEarthTxRxHeights_DiffractionModel_amsl_m to calculate the effective heights 
 //for the smooth earth Bullington Loss after compensating for terrain obstructions and 

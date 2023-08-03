@@ -4,7 +4,7 @@
 #include "ClearAirModel/BasicProp.h"
 #include "ClearAirModel/DiffractionLoss.h"
 #include "ClearAirModel/TropoScatter.h"
-#include "ClearAirModel/AnomolousProp.h"
+#include "ClearAirModel/AnomalousProp.h"
 #include "ClearAirModel/P452TotalAttenuation.h"
 #include <filesystem>
 
@@ -334,7 +334,7 @@ TEST_F(MixedProfileTests, TroposcatterLossTests_calcTroposcatterLossTest){
     }
 }
 
-TEST_F(MixedProfileTests, AnomolousProp_calcSmoothEarthTxRxHeights_DuctingModel_Test){
+TEST_F(MixedProfileTests, AnomalousProp_calcSmoothEarthTxRxHeights_DuctingModel_Test){
     const double FREQ_GHZ = 0.2;
     const double P_PERCENT = 0.1;
 
@@ -349,7 +349,7 @@ TEST_F(MixedProfileTests, AnomolousProp_calcSmoothEarthTxRxHeights_DuctingModel_
 
     const auto HORIZON_VALS = 
         ClearAirModelHelpers::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ);
-    const auto AnomolousModel = ClearAirModel::AnomolousProp(
+    const auto AnomalousModel = ClearAirModel::AnomalousProp(
         K_PATH,
         FREQ_GHZ,
         HTS_MASL,
@@ -364,13 +364,13 @@ TEST_F(MixedProfileTests, AnomolousProp_calcSmoothEarthTxRxHeights_DuctingModel_
         HORIZON_VALS,
         SEA_FRAC
     );
-    const auto [EFF_TX_HEIGHT_M,EFF_RX_HEIGHT_M] = AnomolousModel.calcSmoothEarthTxRxHeights_DuctingModel_amsl_m();
+    const auto [EFF_TX_HEIGHT_M,EFF_RX_HEIGHT_M] = AnomalousModel.calcSmoothEarthTxRxHeights_DuctingModel_amsl_m();
     
     EXPECT_NEAR(EXPECTED_TX_HEIGHT_M,EFF_TX_HEIGHT_M,TOLERANCE_STRICT);
     EXPECT_NEAR(EXPECTED_RX_HEIGHT_M,EFF_RX_HEIGHT_M,TOLERANCE_STRICT);
 }
 
-TEST_F(MixedProfileTests, AnomolousProp_calcTerrainRoughnessTest){
+TEST_F(MixedProfileTests, AnomalousProp_calcTerrainRoughnessTest){
     const double FREQ_GHZ = 0.2;
     const double P_PERCENT = 0.1;
 
@@ -384,7 +384,7 @@ TEST_F(MixedProfileTests, AnomolousProp_calcTerrainRoughnessTest){
 
     const auto HORIZON_VALS = 
         ClearAirModelHelpers::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ);
-    const auto AnomolousModel = ClearAirModel::AnomolousProp(
+    const auto AnomalousModel = ClearAirModel::AnomalousProp(
         K_PATH,
         FREQ_GHZ,
         HTS_MASL,
@@ -399,13 +399,13 @@ TEST_F(MixedProfileTests, AnomolousProp_calcTerrainRoughnessTest){
         HORIZON_VALS,
         SEA_FRAC
     );
-    const double VAL_TERRAIN_ROUGHNESS = AnomolousModel.calcTerrainRoughness_m();
+    const double VAL_TERRAIN_ROUGHNESS = AnomalousModel.calcTerrainRoughness_m();
     
     EXPECT_NEAR(EXPECTED_TERRAIN_ROUGHNESS,VAL_TERRAIN_ROUGHNESS,TOLERANCE_STRICT);
 }
 
 //no direct unit test for the helpers yet. they're all lumped together in this validation data check
-TEST_F(MixedProfileTests, AnomolousProp_calcAnomolousPropLossTest){
+TEST_F(MixedProfileTests, AnomalousProp_calcAnomalousPropLossTest){
 
     const double B0_PERCENT = K_PATH.calcTimePercentBeta0(INPUT_LAT);
     const double HTS_MASL = HTG+K_PATH.front().h_asl_m;
@@ -426,7 +426,7 @@ TEST_F(MixedProfileTests, AnomolousProp_calcAnomolousPropLossTest){
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
         const auto HORIZON_VALS = 
             ClearAirModelHelpers::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]);
-        const auto AnomolousModel = ClearAirModel::AnomolousProp(
+        const auto AnomalousModel = ClearAirModel::AnomalousProp(
             K_PATH,
             FREQ_GHZ_LIST[freqInd],
             HTS_MASL,
@@ -441,7 +441,7 @@ TEST_F(MixedProfileTests, AnomolousProp_calcAnomolousPropLossTest){
             HORIZON_VALS,
             SEA_FRAC
         );
-        const double LOSS_VAL = AnomolousModel.getAnomolousPropLoss_dB();
+        const double LOSS_VAL = AnomalousModel.getAnomalousPropLoss_dB();
         EXPECT_NEAR(EXPECTED_LBA[freqInd],LOSS_VAL,TOLERANCE);
     }
 }

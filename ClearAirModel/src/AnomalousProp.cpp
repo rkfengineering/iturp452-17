@@ -1,10 +1,10 @@
-#include "ClearAirModel/AnomolousProp.h"
+#include "ClearAirModel/AnomalousProp.h"
 #include "Common/MathHelpers.h"
 #include "ClearAirModel/CalculationHelpers.h"
 #include <cmath>
 #include <iostream>
 
-ClearAirModel::AnomolousProp::AnomolousProp(const PathProfile::Path& path, const double& freq_GHz,
+ClearAirModel::AnomalousProp::AnomalousProp(const PathProfile::Path& path, const double& freq_GHz,
     const double& height_tx_asl_m, const double& height_rx_asl_m,
     const double& temp_K, const double& dryPressure_hPa, const double& dist_coast_tx_km,
     const double& dist_coast_rx_km, const double& p_percent,
@@ -25,10 +25,10 @@ ClearAirModel::AnomolousProp::AnomolousProp(const PathProfile::Path& path, const
     m_fixedCouplingLoss_dB = calcFixedCouplingLoss_helper_dB();
     m_timePercentageAndAngularDistanceLoss_dB = calcTimePercentageAndAngularDistanceLoss_helper_dB();
     //Final stage of calculations
-    m_anomolousPropLoss_dB = calcAnomolousPropLoss();
+    m_anomalousPropLoss_dB = calcAnomalousPropLoss();
 }
 
-double ClearAirModel::AnomolousProp::calcFixedCouplingLoss_helper_dB()const{
+double ClearAirModel::AnomalousProp::calcFixedCouplingLoss_helper_dB()const{
 
     //Equation 47a Empirical correction to account for the increasing attenuation with wavelength inducted propagation 
     double Alf = 0.0;
@@ -77,7 +77,7 @@ double ClearAirModel::AnomolousProp::calcFixedCouplingLoss_helper_dB()const{
             + Alf + Ast + Asr + Act + Acr;
 }
 
-double ClearAirModel::AnomolousProp::calcTimePercentageAndAngularDistanceLoss_helper_dB()const{
+double ClearAirModel::AnomalousProp::calcTimePercentageAndAngularDistanceLoss_helper_dB()const{
 
     //Equation 51
     const double specificAttenuation_dB_per_mrad = 5.0e-5*m_eff_radius_med_km*std::pow(m_freq_GHz,1.0/3.0);
@@ -129,7 +129,7 @@ double ClearAirModel::AnomolousProp::calcTimePercentageAndAngularDistanceLoss_he
     return specificAttenuation_dB_per_mrad * m_pathAngularDistance_mrad + timePercentageVariabilityLoss_dB;
 }
 
-double ClearAirModel::AnomolousProp::calcAnomolousPropLoss()const{
+double ClearAirModel::AnomalousProp::calcAnomalousPropLoss()const{
 
     //The extra m_path length from considering the antenna heights is insignificant 
     //but it is also an explicit difference between 452-16 and 452-17
@@ -146,7 +146,7 @@ double ClearAirModel::AnomolousProp::calcAnomolousPropLoss()const{
     return m_fixedCouplingLoss_dB+m_timePercentageAndAngularDistanceLoss_dB+gasLoss_dB;
 }
 
-ClearAirModel::TxRxPair ClearAirModel::AnomolousProp::calcSmoothEarthTxRxHeights_DuctingModel_amsl_m()const{
+ClearAirModel::TxRxPair ClearAirModel::AnomalousProp::calcSmoothEarthTxRxHeights_DuctingModel_amsl_m()const{
 
     //Equations 166a, 166b
     //Tx,Rx heights from a least squares smooth m_path
@@ -164,7 +164,7 @@ ClearAirModel::TxRxPair ClearAirModel::AnomolousProp::calcSmoothEarthTxRxHeights
 }
 
 //TODO refactor code to make more efficient. We don't have to call the helper function this often
-double ClearAirModel::AnomolousProp::calcTerrainRoughness_m()const{
+double ClearAirModel::AnomalousProp::calcTerrainRoughness_m()const{
     //Equations 166a, 166b
     //Tx,Rx heights from a least squares smooth m_path
     auto [height_smooth_tx_amsl_m,height_smooth_rx_amsl_m] = 
