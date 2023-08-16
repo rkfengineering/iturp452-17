@@ -44,7 +44,7 @@ TEST(HelpersTests, calcMedianEffRadiusTest){
 
 //check path fraction calculation (omega) using mixed terrain path
 TEST(ProfilePathTests, calcFracOverSeaTest){
-    const PathProfile::Path p(clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv"));
+    const PathProfile::Path p((clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv")).string());
     const double VAL_FRAC= p.calcFracOverSea();
     const double EXPECTED_FRAC = 0.394495413;
 	EXPECT_NEAR(EXPECTED_FRAC,VAL_FRAC,TOLERANCE_STRICT);
@@ -52,7 +52,7 @@ TEST(ProfilePathTests, calcFracOverSeaTest){
 
 //check beta0 using mixed terrain path
 TEST(ProfilePathTests, calcTimePercentBeta0Test){
-    const PathProfile::Path p(clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv"));
+    const PathProfile::Path p((clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv")).string());
     const double PHI_T = 51.2;
     const double PHI_R = 50.73;
     const double INPUT_LAT = (PHI_T+PHI_R)/2.0;
@@ -64,7 +64,7 @@ TEST(ProfilePathTests, calcTimePercentBeta0Test){
 
 //check longest contiguous inland distance calculation using mixed terrain path
 TEST(ProfilePathTests, calcLongestContiguousInlandDistanceTest){
-    const PathProfile::Path p(clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv"));
+    const PathProfile::Path p((clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv")).string());
     const double VAL_DIST_KM= p.calcLongestContiguousInlandDistance_km();
     const double EXPECTED_DIST_KM = 6.0;
 	EXPECT_NEAR(EXPECTED_DIST_KM,VAL_DIST_KM,TOLERANCE_STRICT);
@@ -73,7 +73,7 @@ TEST(ProfilePathTests, calcLongestContiguousInlandDistanceTest){
 //check horizon elevation angle and distance calculations using mixed terrain path
 //transhorizon path tested
 TEST(HelpersTests, calcHorizonAnglesAndDistances_TranshorizonTest){
-    const PathProfile::Path p(clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv"));
+    const PathProfile::Path p((clearAirDataFullPath/std::filesystem::path("test_profile_mixed_109km.csv")).string());
     const double HTG = 10;
     const double HRG = 10;
     const double DN = 53;

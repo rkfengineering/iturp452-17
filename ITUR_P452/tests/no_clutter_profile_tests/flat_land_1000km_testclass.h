@@ -17,9 +17,9 @@ protected:
 	// Called before the first test in this test suite.
 	// Can be omitted if not needed.
 	static void SetUpTestCase() {
-        K_PATH = PathProfile::Path(CMAKE_CLEARAIR_SRC_DIR 
+        K_PATH = PathProfile::Path((CMAKE_CLEARAIR_SRC_DIR 
 						/ std::filesystem::path("tests/test_paths")
-						/ std::filesystem::path("test_profile_flat_land_1000km.csv"));
+						/ std::filesystem::path("test_profile_flat_land_1000km.csv")).string());
 	}
 
 	// Per-test-suite tear-down.

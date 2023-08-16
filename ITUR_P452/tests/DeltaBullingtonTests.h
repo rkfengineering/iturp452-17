@@ -20,10 +20,10 @@ protected:
         clearAirDataFullPath /= std::filesystem::path("tests/test_paths");
 
         m_profile_list = {
-            PathProfile::Path(clearAirDataFullPath/std::filesystem::path("dbull_path1.csv")),
-            PathProfile::Path(clearAirDataFullPath/std::filesystem::path("dbull_path2.csv")),
-            PathProfile::Path(clearAirDataFullPath/std::filesystem::path("dbull_path3.csv")),
-            PathProfile::Path(clearAirDataFullPath/std::filesystem::path("dbull_path4.csv")),
+            PathProfile::Path((clearAirDataFullPath/std::filesystem::path("dbull_path1.csv")).string()),
+            PathProfile::Path((clearAirDataFullPath/std::filesystem::path("dbull_path2.csv")).string()),
+            PathProfile::Path((clearAirDataFullPath/std::filesystem::path("dbull_path3.csv")).string()),
+            PathProfile::Path((clearAirDataFullPath/std::filesystem::path("dbull_path4.csv")).string()),
         };
 	}
 

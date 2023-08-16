@@ -1,5 +1,6 @@
 #include "ClutterModel_P452_17/ClutterLoss.h"
 #include <cmath>
+#include <cstdint>
 #include <algorithm>
 #include <tuple>
 #include <iostream>
@@ -34,8 +35,8 @@ ClutterModel::ClutterResults ClutterModel::calculateClutterModel(const double& f
     const auto [tx_clutter_height_m,tx_clutter_dist_km] = fetchNominalClutterValues(tx_clutterType);
     const auto [rx_clutter_height_m,rx_clutter_dist_km] = fetchNominalClutterValues(rx_clutterType);
 
-    u_int16_t index1 = 0;
-    u_int16_t index2 = path.size();//sentinel index. the last valid value is right before this
+    uint16_t index1 = 0;
+    uint16_t index2 = path.size();//sentinel index. the last valid value is right before this
     double hg_height_tx_m = height_tx_m;
     double hg_height_rx_m = height_rx_m;
     double tx_clutterLoss_dB = 0;

@@ -51,7 +51,7 @@ TEST(ProfilePathTests, loadProfileTest){
 		1663,110
 	};
 	for (uint16_t profileInd = 0; profileInd < PROFILE_LIST.size(); profileInd++) {
-		const PathProfile::Path PROFILE(clearAirPathsFullPath/std::filesystem::path(PROFILE_LIST[profileInd]));
+		const PathProfile::Path PROFILE((clearAirPathsFullPath/std::filesystem::path(PROFILE_LIST[profileInd])).string());
 		EXPECT_NEAR(EXPECTED_FIRST_D_LIST[profileInd], PROFILE.front().d_km, TOLERANCE);
 		EXPECT_NEAR(EXPECTED_FIRST_H_LIST[profileInd], PROFILE.front().h_asl_m, TOLERANCE);
 		EXPECT_EQ(EXPECTED_FIRST_ZONE_LIST[profileInd], static_cast<int>(PROFILE.front().zone));
@@ -111,7 +111,7 @@ TEST(HelpersTests, calcLeastSquaresSmoothEarthHeightsHelper){
 	const double EXPECTED_START = 635.2;
 	const double EXPECTED_END = 357.3;
 
-	const PathProfile::Path p(clearAirPathsFullPath/std::filesystem::path("dbull_path1.csv"));
+	const PathProfile::Path p((clearAirPathsFullPath/std::filesystem::path("dbull_path1.csv")).string());
 	const auto [eff_height_tx, eff_height_rx] = Helpers::calcLeastSquaresSmoothEarthTxRxHeights_helper_amsl_m(p);
 
 	//high tolerance since the values were read off a graph
@@ -148,7 +148,7 @@ TEST(DataGridTests, loadDataGridTest){
 		40.726,317.248
 	};
 	for (uint16_t dataInd = 0; dataInd < DATA_LIST.size(); dataInd++) {
-		const DataGridTxt data(clearAirDataFullPath/std::filesystem::path(DATA_LIST[dataInd]),RESOLUTION);
+		const DataGridTxt data((clearAirDataFullPath/std::filesystem::path(DATA_LIST[dataInd])).string(),RESOLUTION);
 
 		EXPECT_NEAR(EXPECTED_FIRST[dataInd], data.interpolate2D(GeodeticCoord(0.0,89.999999)), TOLERANCE);
 	}	
@@ -158,7 +158,7 @@ TEST(DataGridTests, loadDataGridTest){
 //expected values checked by hand
 TEST(DataGridTests, getDataGridValuesDN50Test){
 	const double RESOLUTION = 1.5;
-	const DataGridTxt data(clearAirDataFullPath/std::filesystem::path("DN50.TXT"),RESOLUTION);
+	const DataGridTxt data((clearAirDataFullPath/std::filesystem::path("DN50.TXT")).string(),RESOLUTION);
 
 	const std::vector<double> INPUT_LON = {
 		36,-4.5,179.99999999
@@ -178,7 +178,7 @@ TEST(DataGridTests, getDataGridValuesDN50Test){
 
 TEST(DataGridTests, fetchDataGridValuesN050Test){
 	const double RESOLUTION = 1.5;
-	const DataGridTxt data(clearAirDataFullPath/std::filesystem::path("N050.TXT"),RESOLUTION);
+	const DataGridTxt data((clearAirDataFullPath/std::filesystem::path("N050.TXT")).string(),RESOLUTION);
 
 	const std::vector<double> INPUT_LON = {
 		36,-4.5,179.99999999

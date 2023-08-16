@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <cstdint>
 
 //constructors
 PathProfile::ProfilePoint::ProfilePoint(){
@@ -27,7 +28,7 @@ PathProfile::Path::Path(std::string csvPath){
 
     std::stringstream ss(line);
     std::string val;
-    u_int16_t n = 0;
+    uint16_t n = 0;
     while(std::getline(ss,val,',')){
         n+=1;
     }
@@ -37,7 +38,7 @@ PathProfile::Path::Path(std::string csvPath){
         std::string val;
         PathProfile::ProfilePoint point;
 
-        for(u_int16_t i=0; i<n; i++){
+        for(uint16_t i=0; i<n; i++){
             std::getline(ss,val,',');
             //row 1 is the distance value
             if(i==0){
