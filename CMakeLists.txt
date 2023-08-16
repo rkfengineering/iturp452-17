@@ -40,8 +40,8 @@ find_package(Threads)
 find_package(GTest REQUIRED)
 find_package(GSL REQUIRED)
 
-add_compile_definitions(CMAKE_ROOT_SRC_DIR="${CMAKE_SOURCE_DIR}/ituModels/itu_linux")
-add_compile_definitions(CMAKE_CLEARAIR_SRC_DIR="${CMAKE_SOURCE_DIR}/ITUR_P452")
+add_compile_definitions(CMAKE_ROOT_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/ituModels/itu_linux")
+add_compile_definitions(CMAKE_CLEARAIR_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/ITUR_P452")
 
 enable_testing()
 
