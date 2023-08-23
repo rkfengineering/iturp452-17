@@ -18,7 +18,7 @@ class TotalClearAirAttenuation {
 public:
     /// @brief Calculates Basic transmission loss (dB), not exceeded for the required annual percentage time, p,
     /// @param freq_GHz             Frequency (GHz)
-    /// @param p_percent            Percentage of time not exceeded (%), 0<p<=50
+    /// @param p_percent            Required time percentage for which the loss is not exceeded, 0<p<=50
     /// @param path_TxToRx          Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)
     /// @param height_tx_m          Tx Antenna height (m)
     /// @param height_rx_m          Rx Antenna height (m)

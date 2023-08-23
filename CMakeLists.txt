@@ -49,4 +49,5 @@ add_subdirectory(ituModels/itu_linux/Common)
 add_subdirectory(ituModels/itu_linux/GasModel)
 add_subdirectory(MainModel)
 add_subdirectory(ClutterModel)
+add_subdirectory(P452)
 
