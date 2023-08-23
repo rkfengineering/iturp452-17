@@ -41,12 +41,12 @@ find_package(GTest REQUIRED)
 find_package(GSL REQUIRED)
 
 add_compile_definitions(CMAKE_ROOT_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/ituModels/itu_linux")
-add_compile_definitions(CMAKE_CLEARAIR_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/ITUR_P452")
+add_compile_definitions(CMAKE_CLEARAIR_SRC_DIR="${CMAKE_CURRENT_SOURCE_DIR}/MainModel")
 
 enable_testing()
 
 add_subdirectory(ituModels/itu_linux/Common)
 add_subdirectory(ituModels/itu_linux/GasModel)
-add_subdirectory(ITUR_P452)
-add_subdirectory(ClutterModel_P452_17)
+add_subdirectory(MainModel)
+add_subdirectory(ClutterModel)
 
