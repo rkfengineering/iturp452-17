@@ -24,20 +24,20 @@ double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeig
     //we could check if its even and do an average of the two middle points but I don't think that's worth it
     const double midpointHeight_km = elevationList_m[elevationList_m.size()/2]/1000.0;
 
-    //Get temp_K, dryPressure from standard atmosphere sources
-    //assuming summer, mid latitude for Kuwait
-    double temp_K, totalPressure_hPa, rho_gm3;
-    GasAttenuationHelpers::setAtmosphericTermsForUsMidLatitude(midpointHeight_km, 
-                temp_K, totalPressure_hPa, rho_gm3, Enumerations::Season::SummerTime);
-    //Equation 4 from ITU-R P.676-13
-    const double waterVapor_hPa = rho_gm3 * temp_K / 216.7;
-    const double dryPressure_hPa = totalPressure_hPa - waterVapor_hPa;
-
     //get deltaN, N0 (surfaceRefractivity) from data map
     //convert coordinate to itumodels format
-    const GeodeticCoord loc = GeodeticCoord(midpoint_lon_deg, midpoint_lat_deg);
-    const double deltaN = ITUR_P452::DataLoader::fetchRadioRefractivityIndexLapseRate(loc);
-    const double surfaceRefractivity = ITUR_P452::DataLoader::fetchSeaLevelSurfaceRefractivity(loc);
+    const GeodeticCoord midpointCoord = GeodeticCoord(midpoint_lon_deg, midpoint_lat_deg, midpointHeight_km);
+    const double deltaN = ITUR_P452::DataLoader::fetchRadioRefractivityIndexLapseRate(midpointCoord);
+    const double surfaceRefractivity = ITUR_P452::DataLoader::fetchSeaLevelSurfaceRefractivity(midpointCoord);
+
+    //Get temp_K, dryPressure from standard atmosphere sources
+    //assuming summer, mid latitude for Kuwait
+    double temp_K, totalPressure_hPa, waterVapor_hPa;
+
+    GasAttenuationHelpers::setSeasonalAtmosphericTermsForUsLocation(midpointCoord, 
+                temp_K, totalPressure_hPa, waterVapor_hPa, Enumerations::Season::SummerTime);
+
+    const double dryPressure_hPa = totalPressure_hPa - waterVapor_hPa;
 
     //convert polarization convention
     Enumerations::PolarizationType pol;

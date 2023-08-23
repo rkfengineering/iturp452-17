@@ -11,7 +11,7 @@ namespace P452 {
     /////////////////////////////
     // Main P452 Functions
     
-    /// @brief Calculate total path loss for clear air conditions using ITU-R P.452-17 model, assuming mid-latitude summer atmospheres
+    /// @brief Calculate total path loss for clear air conditions using ITU-R P.452-17 model, assuming summer season
     /// @param txHeight_m           Tx Antenna Height above terrain (m)
     /// @param rxHeight_m           Rx Antenna Height above terrain (m)
 	/// @param elevationList_m      raw elevation list (meters above sea level) from tx to rx, total distance recommended <10,000 km
@@ -23,8 +23,8 @@ namespace P452 {
     /// @param polariz              0 for Horizonatal Polarization, 1 for Vertical Polarization
     /// @param txHorizonGain_dBi    Tx Antenna directional gain towards the horizon along the path (dB)
     /// @param rxHorizonGain_dBi    Rx Antenna directional gain towards the horizon along the path (dB)
-    /// @param txClutterType       Clutter Category Type at Tx 
-    /// @param rxClutterType       Clutter Category Type at Rx 
+    /// @param txClutterType        Clutter Category Type at Tx 
+    /// @param rxClutterType        Clutter Category Type at Rx 
 	/// @return Path Loss (dB)
     double calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
             const std::vector<double>& elevationList_m, const double& stepDistance_km, 
