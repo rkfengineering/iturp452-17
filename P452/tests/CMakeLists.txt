@@ -13,3 +13,5 @@ target_link_libraries(
 )
 include(GoogleTest)
 gtest_discover_tests(P452_wrapper_test)
+
+add_compile_definitions(CMAKE_TEST_TERRAIN_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")

@@ -5,6 +5,6 @@ add_library(P452Lib STATIC ${P452_SOURCES} ${P452_HEADERS})
 
 target_include_directories(P452Lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_link_libraries(P452Lib PUBLIC MainModel GasModel CommonLibrary ClutterModel)
+target_link_libraries(P452Lib PUBLIC MainModel GasModel CommonLibrary ClutterModel GdalLib)
 
 add_subdirectory(tests)

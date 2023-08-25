@@ -3,6 +3,10 @@
 
 #include "MainModel/PathProfile.h"
 #include "ClutterModel/ClutterLoss.h"
+#include "gdal-lib/LatLonCoord.h"
+#include "gdal-lib/GdalRasterProcessor.h"
+#include "gdal-lib/GdalVectorProcessor.h"
+
 #include <vector>
 
 //WARNING ITU_R P452 is not recommended for frequencies below 100 MHz (VHF band)
@@ -34,8 +38,32 @@ namespace P452 {
             const ClutterModel::ClutterType& txClutterType=ClutterModel::ClutterType::NoClutter,
             const ClutterModel::ClutterType& rxClutterType=ClutterModel::ClutterType::NoClutter);
 
+    double calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
+            const LatLonCoord startCoord, const LatLonCoord endCoord,
+            const std::vector<GdalRasterProcessor>& rasterProcessorList,
+            const double& freq_GHz, const double& timePercent, const int& polariz=0,
+            const double& txHorizonGain_dBi=0, const double& rxHorizonGain_dBi=0,
+            const ClutterModel::ClutterType& txClutterType=ClutterModel::ClutterType::NoClutter,
+            const ClutterModel::ClutterType& rxClutterType=ClutterModel::ClutterType::NoClutter);
+
+    double calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
+            const LatLonCoord startCoord, const LatLonCoord endCoord,
+            const std::vector<GdalRasterProcessor>& rasterProcessorList,
+            const GdalVectorProcessor& landBorders,
+            const double& freq_GHz, const double& timePercent, const int& polariz=0,
+            const double& txHorizonGain_dBi=0, const double& rxHorizonGain_dBi=0,
+            const ClutterModel::ClutterType& txClutterType=ClutterModel::ClutterType::NoClutter,
+            const ClutterModel::ClutterType& rxClutterType=ClutterModel::ClutterType::NoClutter);
+
     /////////////////////////////
     // P452 Helper Functions
+
+    double calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
+            const PathProfile::Path& p452path, const double& midpoint_lat_deg, const double& midpoint_lon_deg,
+            const double& freq_GHz, const double& timePercent, const int& polariz=0,
+            const double& txHorizonGain_dBi=0, const double& rxHorizonGain_dBi=0,
+            const ClutterModel::ClutterType& txClutterType=ClutterModel::ClutterType::NoClutter,
+            const ClutterModel::ClutterType& rxClutterType=ClutterModel::ClutterType::NoClutter);
 
     /// @brief create path for ITU-R P.452-17 model assuming elevation==0 implies Sea zone type
 	/// @param elevationList_m      raw elevation list (meters above sea level)
@@ -44,10 +72,20 @@ namespace P452 {
 	/// @param out_dist_coast_tx_km return distance from tx to the coast (km), 0 if at sea
 	/// @param out_dist_coast_rx_km return distance from rx to the coast (km), 0 if at sea
     void createP452Path(const std::vector<double>& elevationList_m, const double& stepDistance_km,
-        PathProfile::Path& out_path, double& out_dist_coast_tx_km, double& out_dist_coast_rx_km);
+        PathProfile::Path& out_path);
+
+    void createP452Path(const LatLonCoord startCoord, const LatLonCoord endCoord,
+        const std::vector<GdalRasterProcessor>& rasterProcessorList, const GdalVectorProcessor& landBorders,
+        PathProfile::Path& out_path, LatLonCoord& out_midpointCoord);
+
+    void calcCoastDistance_km(const PathProfile::Path& path, double& out_dist_coast_tx_km, 
+                double& out_dist_coast_rx_km);
+
+    void modifyPathAddCoastalValues(PathProfile::Path& path);
 
     /// Potentially Useful Functions:
     /// @brief create raw elevation list for ITU-R P.452-17 model using GdalRasterProcessor
+
     /// @brief create path for ITU-R P.452-17 model using land border data to classify zones through GdalVectorProcessor
 
 } // end namespace P452
