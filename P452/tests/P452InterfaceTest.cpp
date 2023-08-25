@@ -64,9 +64,6 @@ TEST(P452WrapperTests, gdalElevationInputTest){
     const double txHeight_m = 10.0;
     const double rxHeight_m = 10.0;
 
-    const double midpoint_lat_deg = 29.0002;
-    const double midpoint_lon_deg = 48.25;
-
     const double freq_GHz = 0.3;
     const double timePercent = 50.0;
 
@@ -108,9 +105,6 @@ TEST(P452WrapperTests, gdalLandBorderInputTest){
 
     const double txHeight_m = 10.0;
     const double rxHeight_m = 10.0;
-
-    const double midpoint_lat_deg = 29.0002;
-    const double midpoint_lon_deg = 48.25;
 
     const double freq_GHz = 0.3;
     const double timePercent = 50.0;

@@ -4,14 +4,53 @@ This library implements the algorithms found in ITU-P. 452-17 associated with Cl
 * Validation of our implementation is based on: [ITU Official Validation examples for the delta Bullington diffraction prediction method](https://www.itu.int/en/ITU-R/study-groups/rsg3/ionotropospheric/Validation%20examples%20for%20the%20delta%20Bullington%20diffraction%20prediction%20method.docx)
 and also on: [ITU Official Validation examples for software implementation of Recommendation ITU-R P.452](https://www.itu.int/en/ITU-R/study-groups/rsg3/ionotropospheric/R19-WP3M-C-0364!N18-P2!ZIP-E.zip)
 
-## How to Use
+## How to Use (User Interface Functions)
+The following functions can be found in P452/P452.h:
+
+To calculate path loss using a vector of elevation values, use:
+```
+double calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
+        const std::vector<double>& elevationList_m, const double& stepDistance_km, 
+        const double& midpoint_lat_deg, const double& midpoint_lon_deg,
+        const double& freq_GHz, const double& timePercent, const int& polariz=0,
+        const double& txHorizonGain_dBi=0, const double& rxHorizonGain_dBi=0,
+        const ClutterModel::ClutterType& txClutterType=ClutterModel::ClutterType::NoClutter,
+        const ClutterModel::ClutterType& rxClutterType=ClutterModel::ClutterType::NoClutter);
+
+```
+To calculate path loss using terrain map data already loaded into a gdal raster processor, use:
+```
+double calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
+        const LatLonCoord startCoord, const LatLonCoord endCoord,
+        const std::vector<GdalRasterProcessor>& rasterProcessorList,
+        const double& freq_GHz, const double& timePercent, const int& polariz=0,
+        const double& txHorizonGain_dBi=0, const double& rxHorizonGain_dBi=0,
+        const ClutterModel::ClutterType& txClutterType=ClutterModel::ClutterType::NoClutter,
+        const ClutterModel::ClutterType& rxClutterType=ClutterModel::ClutterType::NoClutter);
+```
+To calculate path loss using terrain map data already loaded into a gdal raster processor
+and zone classification using land border data loaded into a gdal vector processor, use:
+```
+double calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
+        const LatLonCoord startCoord, const LatLonCoord endCoord,
+        const std::vector<GdalRasterProcessor>& rasterProcessorList,
+        const GdalVectorProcessor& landBorders,
+        const double& freq_GHz, const double& timePercent, const int& polariz=0,
+        const double& txHorizonGain_dBi=0, const double& rxHorizonGain_dBi=0,
+        const ClutterModel::ClutterType& txClutterType=ClutterModel::ClutterType::NoClutter,
+        const ClutterModel::ClutterType& rxClutterType=ClutterModel::ClutterType::NoClutter);
+```
+
+## How to Use (Internal Core Algorithm Function)
+The following function can be found in MainModel/P452TotalAttenuation.h:
+
 The loss is calculated by first creating an instance of a TotalClearAirAttenuation object. The inputs for the constructor are shown below. 
 The output is the basic transmission loss (dB), not exceeded for the required annual percentage time, p.
 
 |Input Parameter | Parameter Description|
 |----------------|----------------------|
 |freq_GHz             |Frequency (GHz)|
-|p_percent            |Percentage of time not exceeded (%), 0< p <=50|
+|p_percent            |Required time percentage for which the calculated loss is not exceeded, 0< p< =50|
 |path                 |Contains vector of terrain profile distances from Tx (km) and heights (amsl) (m)|
 |height_tx_m          |Tx Antenna height (m)|
 |height_rx_m          |Rx Antenna height (m)|
@@ -38,7 +77,7 @@ Path objects can be created from csv files. See the tests/test_paths folder for 
 const PathProfile::Path my_path("my_full_filepath.csv");
 ```
 
-The following ClutterType values are available under the ITUR_P452 namespace:
+The following ClutterType values are available under the ClutterModel namespace:
 ```
 enum ClutterType {
     NoClutter = 0,

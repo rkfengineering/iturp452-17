@@ -8,7 +8,7 @@
 #include "Common/Enumerations.h"
 #include "Common/GeodeticCoord.h"
 
-
+//use raw elevation data inputs
 double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
             const std::vector<double>& elevationList_m, const double& stepDistance_km, 
             const double& midpoint_lat_deg, const double& midpoint_lon_deg,
@@ -16,15 +16,17 @@ double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeig
             const double& txHorizonGain_dBi, const double& rxHorizonGain_dBi,
             const ClutterModel::ClutterType& txClutterType, const ClutterModel::ClutterType& rxClutterType){
 
-    //path creation
+    //P452 path creation from raw elevation
     PathProfile::Path p452Path;
     createP452Path(elevationList_m, stepDistance_km, p452Path);
 
+    //use P452 path
     return calculateP452Loss_dB(txHeight_m, rxHeight_m, p452Path, midpoint_lat_deg, midpoint_lon_deg,
         freq_GHz, timePercent, polariz, txHorizonGain_dBi, rxHorizonGain_dBi, txClutterType, rxClutterType);
 
 }
 
+//use gdal input for elevation data
 double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
             const LatLonCoord startCoord, const LatLonCoord endCoord,
             const std::vector<GdalRasterProcessor>& rasterProcessorList,
@@ -33,14 +35,14 @@ double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeig
             const ClutterModel::ClutterType& txClutterType,
             const ClutterModel::ClutterType& rxClutterType){
 
+    //Step 1 create great circle path
     const uint32_t numPoints = 50;
     const GreatCirclePath path(startCoord, endCoord);
     //50 points for now, we can probably use the pixel size and path distance to figure out an appropriate value
     const auto pathPointList = path.calcPointsOnGreatCirclePath_vector(numPoints);
     const LatLonCoord midPointCoord = path.calcPointAtFractionOfGreatCirclePath_vector(0.5);
 
-    //Step 2 elevation list at great circle path points
-    // Setup path elevation list as per NTIA's ITM input design (numPoints, stepResolution)
+    //Step 2 create raw elevation list at great circle path points
     const auto startEcef = VectorHelpers::ConvertLatLonToECEF(pathPointList.front());
     const auto nextEcef = VectorHelpers::ConvertLatLonToECEF(pathPointList[1]);
     const double pathStepDistance_km = VectorHelpers::CalculateDistanceMeters(startEcef, nextEcef)/1000.0;
@@ -66,13 +68,16 @@ double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeig
             rawElevationList.push_back(0.0);
         }
     }
-    return calculateP452Loss_dB(txHeight_m, rxHeight_m, 
-            rawElevationList, pathStepDistance_km, 
-            midPointCoord.lat_deg_, midPointCoord.lon_deg_,
-            freq_GHz, timePercent, polariz,
-            txHorizonGain_dBi, rxHorizonGain_dBi,
-            txClutterType, rxClutterType);
+
+    //P452 path creation from raw elevation
+    PathProfile::Path p452Path;
+    createP452Path(rawElevationList, pathStepDistance_km, p452Path);
+
+    //use P452 path
+    return calculateP452Loss_dB(txHeight_m, rxHeight_m, p452Path, midPointCoord.lat_deg_, midPointCoord.lon_deg_,
+        freq_GHz, timePercent, polariz, txHorizonGain_dBi, rxHorizonGain_dBi, txClutterType, rxClutterType);
 }
+
 
 double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
             const LatLonCoord startCoord, const LatLonCoord endCoord,
@@ -82,26 +87,30 @@ double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeig
             const double& txHorizonGain_dBi, const double& rxHorizonGain_dBi,
             const ClutterModel::ClutterType& txClutterType,
             const ClutterModel::ClutterType& rxClutterType){
-    //path creation
+
     PathProfile::Path p452Path;
     LatLonCoord midpointCoord;
-
+    //P452 path creation from raw elevation from gdal inputs
     createP452Path(startCoord, endCoord, rasterProcessorList, landBorders,
                 p452Path, midpointCoord);
 
+    //use P452 path
     return calculateP452Loss_dB(txHeight_m, rxHeight_m, p452Path, midpointCoord.lat_deg_, midpointCoord.lon_deg_,
         freq_GHz, timePercent, polariz, txHorizonGain_dBi, rxHorizonGain_dBi, txClutterType, rxClutterType);
 }
-  
+
+//wrapper for main entry point in algorithm. Fetches environment values and makes certain assumptions
 double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeight_m, 
             const PathProfile::Path& p452path, const double& midpoint_lat_deg, const double& midpoint_lon_deg,
             const double& freq_GHz, const double& timePercent, const int& polariz,
             const double& txHorizonGain_dBi, const double& rxHorizonGain_dBi,
             const ClutterModel::ClutterType& txClutterType, const ClutterModel::ClutterType& rxClutterType){
 
+    //calculate distance to coast
     double dist_coast_tx_km,dist_coast_rx_km;
     calcCoastDistance_km(p452path, dist_coast_tx_km, dist_coast_rx_km);
 
+    //convert coordinate to itumodels format
     double midpointHeight_km;
     uint32_t midIndex = p452path.size()/2;
     if (p452path.size()%2==0){
@@ -110,10 +119,9 @@ double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeig
     else{
         midpointHeight_km = p452path[midIndex].h_asl_m/1000.0;
     }
+    const GeodeticCoord midpointCoord = GeodeticCoord(midpoint_lon_deg, midpoint_lat_deg, midpointHeight_km);
 
     //get deltaN, N0 (surfaceRefractivity) from data map
-    //convert coordinate to itumodels format
-    const GeodeticCoord midpointCoord = GeodeticCoord(midpoint_lon_deg, midpoint_lat_deg, midpointHeight_km);
     const double deltaN = ITUR_P452::DataLoader::fetchRadioRefractivityIndexLapseRate(midpointCoord);
     const double surfaceRefractivity = ITUR_P452::DataLoader::fetchSeaLevelSurfaceRefractivity(midpointCoord);
 
@@ -144,6 +152,7 @@ double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeig
     return p452Model.calcTotalClearAirAttenuation();
 }
 
+//create path from raw elevation data
 void P452::createP452Path(const std::vector<double>& elevationList_m, const double& stepDistance_km,
         PathProfile::Path& out_path){
    
@@ -165,18 +174,18 @@ void P452::createP452Path(const std::vector<double>& elevationList_m, const doub
         distance_km+=stepDistance_km;   
     }
 
-    //assign coastal zone to qualified inland points
+    //Step 2 assign coastal zone to qualified inland points
     modifyPathAddCoastalValues(newPath);
 
     out_path = std::move(newPath);
 }
 
-
+//create path from gdal inputs
 void P452::createP452Path(const LatLonCoord startCoord, const LatLonCoord endCoord,
         const std::vector<GdalRasterProcessor>& rasterProcessorList, const GdalVectorProcessor& landBorders,
         PathProfile::Path& out_path, LatLonCoord& out_midpointCoord){
    
-    //Step 1 convert elevation to path
+    //Step 1 create great circle path
     //create a new path
     PathProfile::Path newPath;
 
@@ -186,8 +195,7 @@ void P452::createP452Path(const LatLonCoord startCoord, const LatLonCoord endCoo
     const auto pathPointList = path.calcPointsOnGreatCirclePath_vector(numPoints);
     out_midpointCoord = path.calcPointAtFractionOfGreatCirclePath_vector(0.5);
 
-    //Step 2 elevation list at great circle path points
-    // Setup path elevation list as per NTIA's ITM input design (numPoints, stepResolution)
+    //Step 2 get elevation and zone at great circle path points
     const auto startEcef = VectorHelpers::ConvertLatLonToECEF(pathPointList.front());
     const auto nextEcef = VectorHelpers::ConvertLatLonToECEF(pathPointList[1]);
     const double pathStepDistance_km = VectorHelpers::CalculateDistanceMeters(startEcef, nextEcef)/1000.0;
@@ -200,6 +208,7 @@ void P452::createP452Path(const LatLonCoord startCoord, const LatLonCoord endCoo
     double elevation_m = 0.0;
     for (const auto& pathPoint : pathPointList) {
         bool foundElevation = false;
+        //use land borders to assign zone
         if(landBorders.doesVectorContainPoint(pathPoint.lat_deg_, pathPoint.lon_deg_)){
             zone=PathProfile::ZoneType::Inland;
         }
@@ -223,13 +232,13 @@ void P452::createP452Path(const LatLonCoord startCoord, const LatLonCoord endCoo
         distance_km+=pathStepDistance_km;
     }
 
+    //step 3 add coastal zone data
     modifyPathAddCoastalValues(newPath);
+
     out_path = std::move(newPath);
 }
 
 void P452::calcCoastDistance_km(const PathProfile::Path& path, double& out_dist_coast_tx_km, double& out_dist_coast_rx_km){
-    //Step 3 find distance to coast
-    //These loops have early termination conditions and might not be run at all. Hence why they aren't merged with Step 2
     //distance to coast only matters if its less than 5km. Otherwise we can just put 500km as an arbitrary large value
     //500km is used by P452 validation data for paths that are far from the coast
     out_dist_coast_tx_km=500.0;//initial large value
@@ -272,7 +281,6 @@ void P452::calcCoastDistance_km(const PathProfile::Path& path, double& out_dist_
 }
 
 void P452::modifyPathAddCoastalValues(PathProfile::Path& path){
-    //Step 2 Fill coastal values
     //go front to back to fill coastal values
     double lastSeaLocation_km = -500.0;//big negative value (or use numeric limits lowest)
     for(auto it = path.begin(); it<path.end(); ++it){
