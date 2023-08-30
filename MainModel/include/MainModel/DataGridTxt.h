@@ -27,25 +27,25 @@ namespace ITUR_P452{
         /// @brief Calculates the bounding-box of coordinates on this data grid which contain the given location
         /// @param location Location which must be bounded within this data grid
         /// @return Bounding-box containing the given location
-        std::vector<DataGridHelpers::BoundingBoxGridPoint> getBoundingBoxList(const GeodeticCoord& location) const;
+        std::vector<ItuModels::DataGridHelpers::BoundingBoxGridPoint> getBoundingBoxList(const ItuModels::GeodeticCoord& location) const;
 
         /// @brief Bi-linear interpolation for a value at the given location from a 2D _data matrix (4-point interpolation)
         /// NOTE: Result is weighted by applying the given weights to the bounding box values
         /// @param location Location where a value is needed
         /// @param customWeightList Weights to be applied to the values at coordinates (0,0), (0,1), (1,0), and (1,1), respectively
         /// @return Custom-weighted interpolation result
-        double interpolate2D(const GeodeticCoord& location, const std::vector<double>& customWeightList) const;
+        double interpolate2D(const ItuModels::GeodeticCoord& location, const std::vector<double>& customWeightList) const;
 
         /// @brief Bi-linear interpolation for a value at the given location from a 2D _data matrix (4-point interpolation)
         /// NOTE: Result is weighted by applying the given weights to the bounding box values
         /// @param location Location where a value is needed
         /// @return Interpolation result at given location
-        double interpolate2D(const GeodeticCoord& location) const;
+        double interpolate2D(const ItuModels::GeodeticCoord& location) const;
 
         /// @brief Bi-cubic interpolation for a value at the given location from a 2D _data matrix (16-point interpolation)
         /// @param location Location where a value is needed
         /// @return Interpolation result at given location
-        double interpCubic(const GeodeticCoord& location) const;
+        double interpCubic(const ItuModels::GeodeticCoord& location) const;
 
     private:
         /// Spacing between points in _dataGrid

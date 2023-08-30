@@ -2,7 +2,7 @@
 #define CLUTTER_LOSS_H
 
 #include "MainModel/PathProfile.h"
-#include "MainModel/Helpers.h"
+#include "MainModel/ClearAirModelHelpers.h"
 #include <vector>
 
 namespace ClutterModel {

@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "mixed_109km_testclass.h"
-#include "MainModel/Helpers.h"
+#include "MainModel/ClearAirModelHelpers.h"
 #include "MainModel/BasicProp.h"
 #include "MainModel/DiffractionLoss.h"
 #include "MainModel/TropoScatter.h"
@@ -417,14 +417,6 @@ TEST_F(MixedProfileTests, AnomalousProp_calcAnomalousPropLossTest){
 }
 
 TEST_F(MixedProfileTests, calcP452TotalAttenuationTest){
-	// Arrange
-    const ClutterModel::ClutterType CLUTTER_PARAMS = ClutterModel::ClutterType::NoClutter;//TODO write these out
-    const auto POL = Enumerations::PolarizationType::HorizontalPolarized;
-
-    const double INPUT_LAT = (PHI_T+PHI_R)/2.0;
-    const double TEMP_K = TEMP_C + 273.15;
-
-
     //basic loss prediction not exceeded for p percent
     const std::vector<double> EXPECTED_LOSS = {
         137.034078,135.6994078,139.1402296,135.7553749,130.2255573,125.1203141,
@@ -436,26 +428,27 @@ TEST_F(MixedProfileTests, calcP452TotalAttenuationTest){
     };
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
-        const auto p452Model = TotalClearAirAttenuation(
+        const auto p452Model = ITUR_P452::TotalClearAirAttenuation(
             FREQ_GHZ_LIST[freqInd],
             P_LIST[freqInd],
             K_PATH,
             HTG,
             HRG,
             INPUT_LAT,
-            TX_GAIN,
-            RX_GAIN,
-            POL,
-            DIST_COAST_TX,
-            DIST_COAST_RX,
             DN,
-            N0,
+            TX_CLUTTER_TYPE,
+            RX_CLUTTER_TYPE
+        );
+        const double LOSS_VAL = p452Model.calcTotalClearAirAttenuation(
             TEMP_K,
             DRY_PRESSURE_HPA,
-            CLUTTER_PARAMS,
-            CLUTTER_PARAMS
+            DIST_COAST_TX,
+            DIST_COAST_RX,
+            N0,
+            TX_GAIN,
+            RX_GAIN,
+            POL
         );
-        double LOSS_VAL = p452Model.calcTotalClearAirAttenuation();
         EXPECT_NEAR(EXPECTED_LOSS[freqInd],LOSS_VAL,TOLERANCE);
     }
 }

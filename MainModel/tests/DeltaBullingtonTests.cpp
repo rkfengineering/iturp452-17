@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "DeltaBullingtonTests.h"
 #include "MainModel/DiffractionLoss.h"
-#include "MainModel/Helpers.h"
+#include "MainModel/ClearAirModelHelpers.h"
 
 //Validation data from ITU validation spreadsheet titled "delB_valid_temp.xlsx", page "outputs"
 //embedded in ITU validation document titled "Validation Examples for the delta Bullington diffraction prediction method"
@@ -68,7 +68,7 @@ TEST_F(DeltaBullingtonTests, calculateDiffractionModelSmoothEarthHeightsTest){
             HRS_AMSL,
             FREQ_MHZ_LIST[pathInd]/1000.0,
             53,//delta N isn't tested here
-            Enumerations::PolarizationType::HorizontalPolarized,
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
             0.1, //p_percent isn't tested here
             3.0, //b0_percent isn't tested here
             path.calcFracOverSea()
@@ -125,7 +125,7 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcBullingtonLossTest){
             HRS_LIST[pathInd] + path.back().h_asl_m,
             FREQ_MHZ_LIST[pathInd]/1000.0,
             53,//delta N isn't tested here
-            Enumerations::PolarizationType::HorizontalPolarized,
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
             0.1, //p_percent isn't tested here
             3.0, //b0_percent isn't tested here
             path.calcFracOverSea()
@@ -193,7 +193,7 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSphericalEarthLossFirstTermTest
             HRS_LIST[pathInd] + path.back().h_asl_m,
             FREQ_MHZ_LIST[pathInd]/1000.0,
             53,//delta N isn't tested here
-            Enumerations::PolarizationType::HorizontalPolarized,
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
             0.1, //p_percent isn't tested here
             3.0, //b0_percent isn't tested here
             path.calcFracOverSea()
@@ -251,7 +251,7 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSphericalEarthLossTest){
             HRS_LIST[pathInd] + path.back().h_asl_m,
             FREQ_MHZ_LIST[pathInd]/1000.0,
             53,//delta N isn't tested here
-            Enumerations::PolarizationType::HorizontalPolarized,
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
             0.1, //p_percent isn't tested here
             3.0, //b0_percent isn't tested here
             path.calcFracOverSea()
@@ -305,7 +305,7 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcDeltaBullingtonLossTest){
             HRS_LIST[pathInd] + path.back().h_asl_m,
             FREQ_MHZ_LIST[pathInd]/1000.0,
             53,//delta N isn't tested here
-            Enumerations::PolarizationType::HorizontalPolarized,
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
             0.1, //p_percent isn't tested here
             3.0, //b0_percent isn't tested here
             path.calcFracOverSea()
@@ -361,7 +361,7 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSmoothEarthBullingtonLossTest){
             HRS_LIST[pathInd] + path.back().h_asl_m,
             FREQ_GHZ,
             53,//delta N isn't tested here
-            Enumerations::PolarizationType::HorizontalPolarized,
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
             0.1, //p_percent isn't tested here
             3.0, //b0_percent isn't tested here
             path.calcFracOverSea()

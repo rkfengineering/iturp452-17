@@ -14,13 +14,13 @@ namespace ITUR_P452 {
         /// @param location Desired location in lon,lat coordinates
         /// @return Refractivity value N0 (N-Units)
         /// This data is fetched from a TXT file from ITU-R P.452 and ITU-R P.1812
-        static double fetchSeaLevelSurfaceRefractivity(const GeodeticCoord& location);
+        static double fetchSeaLevelSurfaceRefractivity(const ItuModels::GeodeticCoord& location);
 
         /// @brief Fetch Average radio-refractive index lapse-rate through the lowest 1km of the atmosphere
         /// @param location Desired location in lon,lat coordinates
         /// @return Refractivity Lapse Rate Delta N (N-Units/km)
         /// This data is fetched from a TXT file from ITU-R P.452 and ITU-R P.1812
-        static double fetchRadioRefractivityIndexLapseRate(const GeodeticCoord& location);
+        static double fetchRadioRefractivityIndexLapseRate(const ItuModels::GeodeticCoord& location);
 
     private:
         //sea level surface refractivity (N-Units)

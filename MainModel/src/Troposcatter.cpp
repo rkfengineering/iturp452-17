@@ -22,15 +22,15 @@ double ITUR_P452::TropoScatter::calcTroposcatterLoss_dB(const double& d_tot_km, 
     const double path_angular_distance_mrad = Helpers::calcPathAngularDistance_mrad(elevationAngles_mrad,d_tot_km,eff_radius_med_km);
 
     //Equation 45a     
-    const double frequencyDependentLoss_dB = 25.0*std::log10(freq_GHz)-2.5*MathHelpers::simpleSquare(std::log10(freq_GHz/2.0));
+    const double frequencyDependentLoss_dB = 25.0*std::log10(freq_GHz)-2.5*ItuModels::MathHelpers::simpleSquare(std::log10(freq_GHz/2.0));
     //Equation 45b
     const double aperatureToMedium_CouplingLoss_dB = 0.051*std::exp(0.055*(txHorizonGain_dBi+rxHorizonGain_dBi));
 
     //The extra path length from considering the antenna heights is insignificant 
     //but it is also an explicit difference between 452-16 and 452-17
     //Equation 8a line of sight distance accounting for height differential (calculated for transhorizon paths too)
-    const double d_los_km = std::sqrt(MathHelpers::simpleSquare(d_tot_km)+
-                                        MathHelpers::simpleSquare((height_tx_asl_m-height_rx_asl_m)/1000.0));
+    const double d_los_km = std::sqrt(ItuModels::MathHelpers::simpleSquare(d_tot_km)+
+                                        ItuModels::MathHelpers::simpleSquare((height_tx_asl_m-height_rx_asl_m)/1000.0));
     //Equation 9 using rho = 3 g/m^3
     //The extra path length from considering the antenna heights is insignificant
     const double gasAtten_dB = Helpers::calcGasAtten_dB(d_los_km,freq_GHz,temp_K,dryPressure_hPa,3.0);

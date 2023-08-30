@@ -25,8 +25,8 @@ void ITUR_P452::BasicProp::calcTransmissionlosses_dB(double& out_freeSpaceWithGa
 double ITUR_P452::BasicProp::calcPathLossWithGas_dB() const{
     
     //Equation 8a distance accounting for height differential (calculated for transhorizon paths too)
-    const double d_los_km = std::sqrt(MathHelpers::simpleSquare(m_d_tot_km)+
-                                        MathHelpers::simpleSquare((m_height_tx_asl_m-m_height_rx_asl_m)/1000.0));
+    const double d_los_km = std::sqrt(ItuModels::MathHelpers::simpleSquare(m_d_tot_km)+
+                                        ItuModels::MathHelpers::simpleSquare((m_height_tx_asl_m-m_height_rx_asl_m)/1000.0));
     //Equation 9a Water Vapor Density
     const double rho = 7.5 + 2.5 * m_frac_over_sea;
    

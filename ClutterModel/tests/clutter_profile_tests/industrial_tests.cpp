@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 #include "industrial_testclass.h"
-#include "MainModel/Helpers.h"
+#include "MainModel/ClearAirModelHelpers.h"
 #include "MainModel/BasicProp.h"
 #include "MainModel/DiffractionLoss.h"
 #include "MainModel/TropoScatter.h"
@@ -319,19 +319,20 @@ TEST_F(IndustrialProfileTests, calcP452TotalAttenuationTest){
             HTG,
             HRG,
             INPUT_LAT,
-            TX_GAIN,
-            RX_GAIN,
-            POL,
-            DIST_COAST_TX,
-            DIST_COAST_RX,
             DN,
-            N0,
-            TEMP_K,
-            DRY_PRESSURE_HPA,
             TX_CLUTTER_TYPE,
             RX_CLUTTER_TYPE
         );
-        double LOSS_VAL = p452Model.calcTotalClearAirAttenuation();
+        const double LOSS_VAL = p452Model.calcTotalClearAirAttenuation(
+            TEMP_K,
+            DRY_PRESSURE_HPA,
+            DIST_COAST_TX,
+            DIST_COAST_RX,
+            N0,
+            TX_GAIN,
+            RX_GAIN,
+            POL
+        );
         EXPECT_NEAR(EXPECTED_LOSS[freqInd],LOSS_VAL,TOLERANCE);
     }
 }

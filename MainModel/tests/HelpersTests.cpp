@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "MainModel/PathProfile.h"
 #include "MainModel/CalculationHelpers.h"
-#include "MainModel/Helpers.h"
+#include "MainModel/ClearAirModelHelpers.h"
 #include "MainModel/DataGridTxt.h"
 #include "MainModel/BasicProp.h"
 #include "MainModel/TropoScatter.h"
@@ -125,8 +125,8 @@ TEST(BasicPropTests, calcFreeSpacePathLoss){
 	const double INPUT_FREQ_GHz = 2;
 	const double INPUT_DIST_KM = 500;
 
-	const double EXPECTED_LOSS = PowerUnitConversionHelpers::convertWattsToDb(
-		DataStructures::PATH_LOSS_SCALE_FACTOR * INPUT_DIST_KM * INPUT_FREQ_GHz) * 2.0;
+	const double EXPECTED_LOSS = ItuModels::PowerUnitConversionHelpers::convertWattsToDb(
+		ItuModels::DataStructures::PATH_LOSS_SCALE_FACTOR * INPUT_DIST_KM * INPUT_FREQ_GHz) * 2.0;
 
 	//arbitrary inputs to create the object
 	const auto BasicPropModel = BasicProp(INPUT_DIST_KM, 0,0, INPUT_FREQ_GHz, 300, 1000, 
@@ -150,7 +150,7 @@ TEST(DataGridTests, loadDataGridTest){
 	for (uint16_t dataInd = 0; dataInd < DATA_LIST.size(); dataInd++) {
 		const DataGridTxt data((clearAirDataFullPath/std::filesystem::path(DATA_LIST[dataInd])).string(),RESOLUTION);
 
-		EXPECT_NEAR(EXPECTED_FIRST[dataInd], data.interpolate2D(GeodeticCoord(0.0,89.999999)), TOLERANCE);
+		EXPECT_NEAR(EXPECTED_FIRST[dataInd], data.interpolate2D(ItuModels::GeodeticCoord(0.0,89.999999)), TOLERANCE);
 	}	
 }
 
@@ -171,8 +171,8 @@ TEST(DataGridTests, getDataGridValuesDN50Test){
 	};
 
 	for (uint16_t coordInd = 0; coordInd < INPUT_LON.size(); coordInd++) {
-		EXPECT_NEAR(EXPECTED_DN50[coordInd], data.interpolate2D(GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
-		EXPECT_NEAR(EXPECTED_DN50[coordInd], DataLoader::fetchRadioRefractivityIndexLapseRate(GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
+		EXPECT_NEAR(EXPECTED_DN50[coordInd], data.interpolate2D(ItuModels::GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
+		EXPECT_NEAR(EXPECTED_DN50[coordInd], DataLoader::fetchRadioRefractivityIndexLapseRate(ItuModels::GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
 	}	
 }
 
@@ -191,8 +191,8 @@ TEST(DataGridTests, fetchDataGridValuesN050Test){
 	};
 
 	for (uint16_t coordInd = 0; coordInd < INPUT_LON.size(); coordInd++) {
-		EXPECT_NEAR(EXPECTED_N050[coordInd], data.interpolate2D(GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
-		EXPECT_NEAR(EXPECTED_N050[coordInd], DataLoader::fetchSeaLevelSurfaceRefractivity(GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
+		EXPECT_NEAR(EXPECTED_N050[coordInd], data.interpolate2D(ItuModels::GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
+		EXPECT_NEAR(EXPECTED_N050[coordInd], DataLoader::fetchSeaLevelSurfaceRefractivity(ItuModels::GeodeticCoord(INPUT_LON[coordInd],INPUT_LAT[coordInd])), TOLERANCE);
 	}	
 }
 

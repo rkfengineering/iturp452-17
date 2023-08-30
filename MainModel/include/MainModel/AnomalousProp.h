@@ -3,7 +3,7 @@
 
 #include "gtest/gtest.h"
 #include "PathProfile.h"
-#include "Helpers.h"
+#include "ClearAirModelHelpers.h"
 
 namespace ITUR_P452{
 

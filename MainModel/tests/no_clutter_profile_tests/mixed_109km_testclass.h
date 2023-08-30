@@ -6,6 +6,7 @@
 
 #include <MainModel/PathProfile.h>
 #include "Common/Enumerations.h"
+#include <ClutterModel/ClutterLoss.h>
 #include <filesystem>
 
 
@@ -59,8 +60,9 @@ protected:
     static constexpr double DIST_COAST_RX = 500;
     static constexpr double DRY_PRESSURE_HPA = 1013;
     static constexpr double TEMP_C = 15;
-    static constexpr int CLUTTER_PARAMS = 0;//TODO write these out
-    static constexpr auto POL = Enumerations::PolarizationType::HorizontalPolarized;
+    static constexpr ClutterModel::ClutterType TX_CLUTTER_TYPE = ClutterModel::ClutterType::NoClutter;
+    static constexpr ClutterModel::ClutterType RX_CLUTTER_TYPE = ClutterModel::ClutterType::NoClutter;
+	static constexpr auto POL = ItuModels::Enumerations::PolarizationType::HorizontalPolarized;
     static constexpr double INPUT_LAT = (PHI_T+PHI_R)/2.0;
     static constexpr double TEMP_K = TEMP_C + 273.15;
 };

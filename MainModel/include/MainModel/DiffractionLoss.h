@@ -3,7 +3,7 @@
 
 #include "gtest/gtest.h"
 #include "PathProfile.h"
-#include "Helpers.h"
+#include "ClearAirModelHelpers.h"
 #include "Common/Enumerations.h"
 
 namespace ITUR_P452{
@@ -31,7 +31,7 @@ public:
     /// @param b0_percent       Time percentage that the refractivity gradient (DELTA-N) exceeds 100 N-units/km in the first 100 m of the lower atmosphere (%)
     /// @param frac_over_sea    Fraction of the path over sea
     DiffractionLoss(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m,
-            const double& freq_GHz, const double& deltaN, const Enumerations::PolarizationType& pol, 
+            const double& freq_GHz, const double& deltaN, const ItuModels::Enumerations::PolarizationType& pol, 
             const double& p_percent, const double&b0_percent, const double& frac_over_sea);
 
     /// @brief Diffraction Loss model from Section 4.5.4
@@ -46,7 +46,7 @@ private:
     const double& m_height_rx_asl_m; //Rx Antenna height (m)
     const double& m_freq_GHz;        //Frequency (GHz)
     const double& m_deltaN;          //Average radio-refractive index lapse-rate through the lowest 1km of the atmosphere (positive value) 
-    const Enumerations::PolarizationType& m_pol; //Polarization type (horizontal or vertical)
+    const ItuModels::Enumerations::PolarizationType& m_pol; //Polarization type (horizontal or vertical)
     const double& m_p_percent;       // Percentage of time not exceeded (%), 0<p<=50
 
     //intermediate inputs
@@ -73,8 +73,6 @@ private:
     /// @param eff_radius_p_km      Effective Earth radius for time percentage (km)
     /// @return Diffraction loss from complete delta-bullington model (dB)
     double calcDeltaBullingtonLoss_dB(const double& eff_radius_p_km) const;
-
-    //TODO find better names for b0, DN
 
     /// @brief Spherical Earth Diffraction Loss exceeded for p% time from Section 4.2.2
     /// @param eff_radius_p_km       Effective Earth radius for time percentage (km)

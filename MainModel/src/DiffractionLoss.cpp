@@ -8,10 +8,10 @@
 #include "Common/MathHelpers.h"
 #include "MainModel/DiffractionLoss.h"
 #include "MainModel/CalculationHelpers.h"
-#include "MainModel/Helpers.h"
+#include "MainModel/ClearAirModelHelpers.h"
 
 ITUR_P452::DiffractionLoss::DiffractionLoss(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m,
-    const double& freq_GHz, const double& deltaN, const Enumerations::PolarizationType& pol, 
+    const double& freq_GHz, const double& deltaN, const ItuModels::Enumerations::PolarizationType& pol, 
     const double& p_percent, const double&b0_percent, const double& frac_over_sea):
     m_path{path}, m_height_tx_asl_m{height_tx_asl_m}, m_height_rx_asl_m{height_rx_asl_m},
     m_freq_GHz{freq_GHz}, m_deltaN{deltaN}, m_pol{pol},
@@ -26,6 +26,7 @@ ITUR_P452::DiffractionLoss::DiffractionLoss(const PathProfile::Path& path, const
 }
 
 void ITUR_P452::DiffractionLoss::calcDiffractionLoss_dB(double& out_diff_loss_median_dB, double& out_diff_loss_p_percent_dB) const{
+    //TODO move this line out of diffraction loss so we can optionally pass in median Effective radius directly
     const double medianEffectiveRadius_km = Helpers::calcMedianEffectiveRadius_km(m_deltaN);
     out_diff_loss_median_dB = calcDeltaBullingtonLoss_dB(medianEffectiveRadius_km);
 
@@ -50,7 +51,7 @@ void ITUR_P452::DiffractionLoss::calcDiffractionLoss_dB(double& out_diff_loss_me
             Fi = CalculationHelpers::inv_cum_norm(m_p_percent/100.0)/CalculationHelpers::inv_cum_norm(m_b0_percent/100.0); //Eq 41a
         }
 
-        out_diff_loss_p_percent_dB = MathHelpers::interpolate1D(out_diff_loss_median_dB, diffractionLoss_b0percent_dB, Fi);
+        out_diff_loss_p_percent_dB = ItuModels::MathHelpers::interpolate1D(out_diff_loss_median_dB, diffractionLoss_b0percent_dB, Fi);
     }
 }
 
@@ -119,7 +120,7 @@ double ITUR_P452::DiffractionLoss::calcBullingtonLoss_dB(const PathProfile::Path
 
         if (numax > -0.78){
             //Eq 13, 17 Knife Edge Loss Approximation
-            loss_knifeEdge_dB = 6.9 + 20.0*std::log10(std::sqrt(MathHelpers::simpleSquare(numax-0.1)+1.0)+numax-0.1);
+            loss_knifeEdge_dB = 6.9 + 20.0*std::log10(std::sqrt(ItuModels::MathHelpers::simpleSquare(numax-0.1)+1.0)+numax-0.1);
         }
     }
     //Case 2 Transhorizon m_path
@@ -145,7 +146,7 @@ double ITUR_P452::DiffractionLoss::calcBullingtonLoss_dB(const PathProfile::Path
 
         if (nub > -0.78){
             //Eq 13, 21 Knife Edge Loss Approximation
-            loss_knifeEdge_dB = 6.9 + 20.0*std::log10(std::sqrt(MathHelpers::simpleSquare(nub-0.1)+1.0)+nub-0.1);
+            loss_knifeEdge_dB = 6.9 + 20.0*std::log10(std::sqrt(ItuModels::MathHelpers::simpleSquare(nub-0.1)+1.0)+nub-0.1);
         }
     }
     //Eq 22 Bullington Loss 
@@ -167,7 +168,7 @@ double ITUR_P452::DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(const do
     const double c = (m_eff_height_itx_m-m_eff_height_irx_m)/(m_eff_height_itx_m+m_eff_height_irx_m); //Eq 25d
     const double m = 250*m_d_tot_km*m_d_tot_km/(eff_radius_p_km*(m_eff_height_itx_m+m_eff_height_irx_m)); //Eq 25e
     const double b = 2*std::sqrt((m+1)/(3*m))*std::cos(M_PI/3+
-        std::acos(3*c/2*std::sqrt(3* m / MathHelpers::simpleCube(m+1)))/3); //Eq 25c
+        std::acos(3*c/2*std::sqrt(3* m / ItuModels::MathHelpers::simpleCube(m+1)))/3); //Eq 25c
     const double dse1 = m_d_tot_km/2*(1+b); //Eq 25a
     const double dse2 = m_d_tot_km - dse1; //Eq 25b
 
@@ -182,7 +183,7 @@ double ITUR_P452::DiffractionLoss::calcSphericalEarthDiffractionLoss_dB(const do
     }
 
     //modified effective earth radius
-    const double mod_effEarthRadius_km = 500*MathHelpers::simpleSquare(m_d_tot_km/(std::sqrt(m_eff_height_itx_m)+std::sqrt(m_eff_height_irx_m))); //Eq 27
+    const double mod_effEarthRadius_km = 500*ItuModels::MathHelpers::simpleSquare(m_d_tot_km/(std::sqrt(m_eff_height_itx_m)+std::sqrt(m_eff_height_irx_m))); //Eq 27
     //Use 4.2.2.1 method with modified effective earth radius
     const double loss_firstTerm_dB = calcSphericalEarthDiffraction_firstTerm_dB(mod_effEarthRadius_km);
     
@@ -203,7 +204,7 @@ double ITUR_P452::DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_dB(co
     const double loss_firstTerm_sea_dB = calcSphericalEarthDiffraction_firstTerm_singleZone_dB(80,5,eff_radius_km);
 
     //Equation 29
-    return MathHelpers::interpolate1D(loss_firstTerm_land_dB, loss_firstTerm_sea_dB, m_frac_over_sea);
+    return ItuModels::MathHelpers::interpolate1D(loss_firstTerm_land_dB, loss_firstTerm_sea_dB, m_frac_over_sea);
 }
 
 
@@ -211,17 +212,17 @@ double ITUR_P452::DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_singl
                                                     const double& conductivity,const double& eff_radius_km) const{
     
     //Normalized factor for surface admittance for Horizontal Polarization
-    double K = 0.036*std::pow((eff_radius_km*m_freq_GHz),-1.0/3.0)*std::pow((MathHelpers::simpleSquare(relPermittivity-1.0)+
-        MathHelpers::simpleSquare(18.0*conductivity/m_freq_GHz)),-1.0/4.0); //Eq 30a
+    double K = 0.036*std::pow((eff_radius_km*m_freq_GHz),-1.0/3.0)*std::pow((ItuModels::MathHelpers::simpleSquare(relPermittivity-1.0)+
+        ItuModels::MathHelpers::simpleSquare(18.0*conductivity/m_freq_GHz)),-1.0/4.0); //Eq 30a
 
     //Normalized factor for surface admittance for Vertical Polarization
-    if(m_pol!=Enumerations::PolarizationType::HorizontalPolarized){
+    if(m_pol!=ItuModels::Enumerations::PolarizationType::HorizontalPolarized){
         //Equation 30b
         const double K_ver = K*std::sqrt(
-                    MathHelpers::simpleSquare(relPermittivity)
-                    + MathHelpers::simpleSquare(18.0*conductivity/m_freq_GHz)
+                    ItuModels::MathHelpers::simpleSquare(relPermittivity)
+                    + ItuModels::MathHelpers::simpleSquare(18.0*conductivity/m_freq_GHz)
         );
-        if(m_pol == Enumerations::PolarizationType::VerticalPolarized){
+        if(m_pol == ItuModels::Enumerations::PolarizationType::VerticalPolarized){
             K = K_ver;
         }
         else{
@@ -267,14 +268,14 @@ double ITUR_P452::DiffractionLoss::calcSphericalEarthDiffraction_firstTerm_singl
         GYt = 17.6*std::sqrt(Bt-1.1)-5*std::log10(Bt-1.1)-8;
     }
     else{
-        GYt = 20*std::log10(Bt+0.1*MathHelpers::simpleCube(Bt));
+        GYt = 20*std::log10(Bt+0.1*ItuModels::MathHelpers::simpleCube(Bt));
     }
     
     if(Br>2){
         GYr = 17.6*std::sqrt(Br-1.1)-5*std::log10(Br-1.1)-8;
     }
     else{
-        GYr = 20*std::log10(Br+0.1*MathHelpers::simpleCube(Br));
+        GYr = 20*std::log10(Br+0.1*ItuModels::MathHelpers::simpleCube(Br));
     } 
 
     //enforce minimum values

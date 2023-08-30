@@ -63,7 +63,7 @@ protected:
     static constexpr double TEMP_C = 15;
     static constexpr ClutterModel::ClutterType TX_CLUTTER_TYPE = ClutterModel::ClutterType::DenseSuburban;
     static constexpr ClutterModel::ClutterType RX_CLUTTER_TYPE = ClutterModel::ClutterType::DenseSuburban;
-    static constexpr auto POL = Enumerations::PolarizationType::VerticalPolarized;
+    static constexpr auto POL = ItuModels::Enumerations::PolarizationType::VerticalPolarized;
     static constexpr double INPUT_LAT = (PHI_T+PHI_R)/2.0;
     static constexpr double TEMP_K = TEMP_C + 273.15;
 };

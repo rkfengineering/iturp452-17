@@ -22,5 +22,5 @@ double ITUR_P452::CalculationHelpers::inv_cum_norm(double prob){
 }
 
 double ITUR_P452::CalculationHelpers::convert_freqGHz_to_wavelength_m(const double& freq_GHz){
-    return 1e-9*PhysicalConstants::SPEED_OF_LIGHT_M_PER_S/freq_GHz;
+    return 1e-9*ItuModels::PhysicalConstants::SPEED_OF_LIGHT_M_PER_S/freq_GHz;
 }

@@ -119,7 +119,7 @@ double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeig
     else{
         midpointHeight_km = p452path[midIndex].h_asl_m/1000.0;
     }
-    const GeodeticCoord midpointCoord = GeodeticCoord(midpoint_lon_deg, midpoint_lat_deg, midpointHeight_km);
+    const ItuModels::GeodeticCoord midpointCoord = ItuModels::GeodeticCoord(midpoint_lon_deg, midpoint_lat_deg, midpointHeight_km);
 
     //get deltaN, N0 (surfaceRefractivity) from data map
     const double deltaN = ITUR_P452::DataLoader::fetchRadioRefractivityIndexLapseRate(midpointCoord);
@@ -129,27 +129,26 @@ double P452::calculateP452Loss_dB(const double& txHeight_m, const double& rxHeig
     //assuming summer, mid latitude for Kuwait
     double temp_K, totalPressure_hPa, waterVapor_hPa;
 
-    GasAttenuationHelpers::setSeasonalAtmosphericTermsForUsLocation(midpointCoord, 
-                temp_K, totalPressure_hPa, waterVapor_hPa, Enumerations::Season::SummerTime);
+    ItuModels::GasAttenuationHelpers::setSeasonalAtmosphericTermsForUsLocation(midpointCoord, 
+                temp_K, totalPressure_hPa, waterVapor_hPa, ItuModels::Enumerations::Season::SummerTime);
 
     const double dryPressure_hPa = totalPressure_hPa - waterVapor_hPa;
 
     //convert polarization convention
-    Enumerations::PolarizationType pol;
+    ItuModels::Enumerations::PolarizationType pol;
     if(polariz==0){//itm polarization 0 for horizontal
-        pol = Enumerations::PolarizationType::HorizontalPolarized;
+        pol = ItuModels::Enumerations::PolarizationType::HorizontalPolarized;
     } 
     else{//itm polarization 1 for vertical
-        pol = Enumerations::PolarizationType::VerticalPolarized;
+        pol = ItuModels::Enumerations::PolarizationType::VerticalPolarized;
     }
 
     //use ITU-R P.452-17
     const auto p452Model = ITUR_P452::TotalClearAirAttenuation(freq_GHz, timePercent, p452path, 
-            txHeight_m, rxHeight_m, midpoint_lat_deg, txHorizonGain_dBi, 
-            rxHorizonGain_dBi, pol, dist_coast_tx_km, dist_coast_rx_km, deltaN, surfaceRefractivity,
-            temp_K, dryPressure_hPa, txClutterType, rxClutterType);
+            txHeight_m, rxHeight_m, midpoint_lat_deg, deltaN, txClutterType, rxClutterType);
 
-    return p452Model.calcTotalClearAirAttenuation();
+    return p452Model.calcTotalClearAirAttenuation(temp_K, dryPressure_hPa,dist_coast_tx_km, dist_coast_rx_km,
+            surfaceRefractivity, txHorizonGain_dBi, rxHorizonGain_dBi, pol);
 }
 
 //create path from raw elevation data

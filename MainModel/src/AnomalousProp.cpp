@@ -112,7 +112,7 @@ double ITUR_P452::AnomalousProp::calcTimePercentageAndAngularDistanceLoss_helper
 
     const auto [eff_height_tx_m, eff_height_rx_m] = effHeights_ducting_m;
     //Equation 55 correction for m_path geometry (mu2)
-    const double val1 = MathHelpers::simpleSquare(m_d_tot_km/(std::sqrt(eff_height_tx_m)+std::sqrt(eff_height_rx_m)));
+    const double val1 = ItuModels::MathHelpers::simpleSquare(m_d_tot_km/(std::sqrt(eff_height_tx_m)+std::sqrt(eff_height_rx_m)));
     const double m_pathGeometryCorrection = std::min(std::pow(500.0/m_eff_radius_med_km * val1, alpha),1.0);
 
     //Equation 56a Distance beyond horizons of tx and rx, value is limited to at most 40 km
@@ -145,8 +145,8 @@ double ITUR_P452::AnomalousProp::calcAnomalousPropGasLoss()const{
     //The extra m_path length from considering the antenna heights is insignificant 
     //but it is also an explicit difference between 452-16 and 452-17
     //Equation 8a distance accounting for height differential (calculated for transhorizon m_paths too)
-    const double d_los_km = std::sqrt(MathHelpers::simpleSquare(m_d_tot_km)+
-                                        MathHelpers::simpleSquare((m_height_tx_asl_m-m_height_rx_asl_m)/1000.0));
+    const double d_los_km = std::sqrt(ItuModels::MathHelpers::simpleSquare(m_d_tot_km)+
+                                        ItuModels::MathHelpers::simpleSquare((m_height_tx_asl_m-m_height_rx_asl_m)/1000.0));
 
     //Equation 9a Water Vapor Density
     const double rho = 7.5 + 2.5 * m_frac_over_sea;

@@ -1,4 +1,4 @@
-#include "MainModel/Helpers.h"
+#include "MainModel/ClearAirModelHelpers.h"
 #include "MainModel/CalculationHelpers.h"
 #include "Common/PhysicalConstants.h"
 #include "GasModel/GasAttenuationHelpers.h"
@@ -165,7 +165,7 @@ double ITUR_P452::Helpers::calcGasAtten_dB(const double& d_los_km, const double&
     const double totalPressure_hPa = dryPressure_hPa + waterVapor_hPa;
 
     //Validation data from ITU uses P676-13 with frequencies below 1 GHz 
-    const double specificAttenuation_dBPerKm = GasAttenuationHelpers::calculateSpecificTotalAttenuation_dBPerKm(
+    const double specificAttenuation_dBPerKm = ItuModels::GasAttenuationHelpers::calculateSpecificTotalAttenuation_dBPerKm(
                                             freq_GHz, temp_K, totalPressure_hPa, waterVapor_hPa);
     // Equation 9
     return specificAttenuation_dBPerKm * d_los_km;

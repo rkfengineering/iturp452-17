@@ -2,7 +2,7 @@
 #define TROPO_SCATTER_H
 
 #include "PathProfile.h"
-#include "Helpers.h"
+#include "ClearAirModelHelpers.h"
 #include "DataGridTxt.h"
 #include "Common/GeodeticCoord.h"
 

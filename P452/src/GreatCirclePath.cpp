@@ -44,7 +44,7 @@ LatLonCoord P452::GreatCirclePath::calcPointAtFractionOfGreatCirclePath_vector(c
 	double currentAngle_rad = totalAngle_rad_ * fraction;
 	VectorHelpers::ECEFCoordinate resultVector = normalStartVector_ * cos(currentAngle_rad) + normalCrossStartVector_ * sin(currentAngle_rad);
 
-	resultVector = resultVector * MathHelpers::interpolate1D(startEcefMagnitude_m_, endEcefMagnitude_m_, fraction);
+	resultVector = resultVector * ItuModels::MathHelpers::interpolate1D(startEcefMagnitude_m_, endEcefMagnitude_m_, fraction);
 	
 	return VectorHelpers::ConvertECEFToLatLon(resultVector);
 }

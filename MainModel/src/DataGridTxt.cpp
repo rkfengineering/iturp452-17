@@ -86,17 +86,17 @@ DataGridTxt::DataGridTxt(const std::string& sourceFilePath, const double& resolu
 
 
 
-std::vector<DataGridHelpers::BoundingBoxGridPoint> DataGridTxt::getBoundingBoxList(const GeodeticCoord& location) const {
-	const auto BOUNDING_BOX_INTEGER_PAIRS = DataGridHelpers::calculateBoundingBoxIntegerPairs(location, _resolution_deg, 
+std::vector<ItuModels::DataGridHelpers::BoundingBoxGridPoint> DataGridTxt::getBoundingBoxList(const ItuModels::GeodeticCoord& location) const {
+	const auto BOUNDING_BOX_INTEGER_PAIRS = ItuModels::DataGridHelpers::calculateBoundingBoxIntegerPairs(location, _resolution_deg, 
 		_startLat_deg, _endLat_deg, _startLon_deg, _endLon_deg);
 
 	const bool isLatitudeAscending = _endLat_deg > _startLat_deg;
 
-	return DataGridHelpers::calculateBoundingBoxGridPointList(location, BOUNDING_BOX_INTEGER_PAIRS, _resolution_deg, _startLat_deg, _startLon_deg, isLatitudeAscending);
+	return ItuModels::DataGridHelpers::calculateBoundingBoxGridPointList(location, BOUNDING_BOX_INTEGER_PAIRS, _resolution_deg, _startLat_deg, _startLon_deg, isLatitudeAscending);
 }
 
-double DataGridTxt::interpolate2D(const GeodeticCoord& location, const std::vector<double>& customWeightList) const {
-	const auto BOUNDING_BOX_INTEGER_PAIRS = DataGridHelpers::calculateBoundingBoxIntegerPairs(location, _resolution_deg,
+double DataGridTxt::interpolate2D(const ItuModels::GeodeticCoord& location, const std::vector<double>& customWeightList) const {
+	const auto BOUNDING_BOX_INTEGER_PAIRS = ItuModels::DataGridHelpers::calculateBoundingBoxIntegerPairs(location, _resolution_deg,
 		_startLat_deg, _endLat_deg, _startLon_deg, _endLon_deg);
 	
 	const auto LON_COL_NEIGHBOR_PAIR = BOUNDING_BOX_INTEGER_PAIRS.first;
@@ -112,13 +112,13 @@ double DataGridTxt::interpolate2D(const GeodeticCoord& location, const std::vect
 	const double value10 = _dataGrid[row1Ind][col0Ind];
 	const double value11 = _dataGrid[row1Ind][col1Ind];
 
-	const double INTERP_RESULT = DataGridHelpers::interpolate2D({ value00, value01, value10, value11 }, customWeightList, LAT_ROW_NEIGHBOR_PAIR.weightFactor, LON_COL_NEIGHBOR_PAIR.weightFactor);
+	const double INTERP_RESULT = ItuModels::DataGridHelpers::interpolate2D({ value00, value01, value10, value11 }, customWeightList, LAT_ROW_NEIGHBOR_PAIR.weightFactor, LON_COL_NEIGHBOR_PAIR.weightFactor);
 
 	return INTERP_RESULT;
 }
 
-double DataGridTxt::interpolate2D(const GeodeticCoord& location) const {
-	const auto BOUNDING_BOX_INTEGER_PAIRS = DataGridHelpers::calculateBoundingBoxIntegerPairs(location, _resolution_deg,
+double DataGridTxt::interpolate2D(const ItuModels::GeodeticCoord& location) const {
+	const auto BOUNDING_BOX_INTEGER_PAIRS = ItuModels::DataGridHelpers::calculateBoundingBoxIntegerPairs(location, _resolution_deg,
 		_startLat_deg, _endLat_deg, _startLon_deg, _endLon_deg);
 
 	const auto LON_COL_NEIGHBOR_PAIR = BOUNDING_BOX_INTEGER_PAIRS.first;
@@ -134,13 +134,13 @@ double DataGridTxt::interpolate2D(const GeodeticCoord& location) const {
 	const double value10 = _dataGrid[row1Ind][col0Ind];
 	const double value11 = _dataGrid[row1Ind][col1Ind];
 
-	const double INTERP_RESULT = DataGridHelpers::interpolate2D({ value00, value01, value10, value11 }, LAT_ROW_NEIGHBOR_PAIR.weightFactor, LON_COL_NEIGHBOR_PAIR.weightFactor);
+	const double INTERP_RESULT = ItuModels::DataGridHelpers::interpolate2D({ value00, value01, value10, value11 }, LAT_ROW_NEIGHBOR_PAIR.weightFactor, LON_COL_NEIGHBOR_PAIR.weightFactor);
 
 	return INTERP_RESULT;
 }
 
-double DataGridTxt::interpCubic(const GeodeticCoord& location) const {
-	const auto BOUNDING_BOX_INTEGER_PAIRS = DataGridHelpers::calculateBoundingBoxIntegerPairs(location, _resolution_deg,
+double DataGridTxt::interpCubic(const ItuModels::GeodeticCoord& location) const {
+	const auto BOUNDING_BOX_INTEGER_PAIRS = ItuModels::DataGridHelpers::calculateBoundingBoxIntegerPairs(location, _resolution_deg,
 		_startLat_deg, _endLat_deg, _startLon_deg, _endLon_deg);
 
 	const auto LON_COL_NEIGHBOR_PAIR = BOUNDING_BOX_INTEGER_PAIRS.first;
@@ -156,15 +156,15 @@ double DataGridTxt::interpCubic(const GeodeticCoord& location) const {
 	// Now wrap to the file grid (implicitly casting)
 	const double NUM_ROWS = static_cast<double>(_dataGrid.size());
 	const double NUM_COLS = static_cast<double>(_dataGrid[0].size());
-	rowIndList.push_back(MathHelpers::clampValueWithinAxis(LAT_ROW_NEIGHBOR_PAIR.lowPoint - 1.0, NUM_ROWS - 1.0));
-	rowIndList.push_back(MathHelpers::clampValueWithinAxis(LAT_ROW_NEIGHBOR_PAIR.lowPoint, NUM_ROWS - 1.0));
-	rowIndList.push_back(MathHelpers::clampValueWithinAxis(LAT_ROW_NEIGHBOR_PAIR.highPoint, NUM_ROWS - 1.0));
-	rowIndList.push_back(MathHelpers::clampValueWithinAxis(LAT_ROW_NEIGHBOR_PAIR.highPoint + 1.0, NUM_ROWS - 1.0));
+	rowIndList.push_back(ItuModels::MathHelpers::clampValueWithinAxis(LAT_ROW_NEIGHBOR_PAIR.lowPoint - 1.0, NUM_ROWS - 1.0));
+	rowIndList.push_back(ItuModels::MathHelpers::clampValueWithinAxis(LAT_ROW_NEIGHBOR_PAIR.lowPoint, NUM_ROWS - 1.0));
+	rowIndList.push_back(ItuModels::MathHelpers::clampValueWithinAxis(LAT_ROW_NEIGHBOR_PAIR.highPoint, NUM_ROWS - 1.0));
+	rowIndList.push_back(ItuModels::MathHelpers::clampValueWithinAxis(LAT_ROW_NEIGHBOR_PAIR.highPoint + 1.0, NUM_ROWS - 1.0));
 
-	colIndList.push_back(MathHelpers::unwrapValueAroundAxis(LON_COL_NEIGHBOR_PAIR.lowPoint - 1.0, 0.0, NUM_COLS));
-	colIndList.push_back(MathHelpers::unwrapValueAroundAxis(LON_COL_NEIGHBOR_PAIR.lowPoint, 0.0, NUM_COLS));
-	colIndList.push_back(MathHelpers::unwrapValueAroundAxis(LON_COL_NEIGHBOR_PAIR.highPoint, 0.0, NUM_COLS));
-	colIndList.push_back(MathHelpers::unwrapValueAroundAxis(LON_COL_NEIGHBOR_PAIR.highPoint + 1.0, 0.0, NUM_COLS));
+	colIndList.push_back(ItuModels::MathHelpers::unwrapValueAroundAxis(LON_COL_NEIGHBOR_PAIR.lowPoint - 1.0, 0.0, NUM_COLS));
+	colIndList.push_back(ItuModels::MathHelpers::unwrapValueAroundAxis(LON_COL_NEIGHBOR_PAIR.lowPoint, 0.0, NUM_COLS));
+	colIndList.push_back(ItuModels::MathHelpers::unwrapValueAroundAxis(LON_COL_NEIGHBOR_PAIR.highPoint, 0.0, NUM_COLS));
+	colIndList.push_back(ItuModels::MathHelpers::unwrapValueAroundAxis(LON_COL_NEIGHBOR_PAIR.highPoint + 1.0, 0.0, NUM_COLS));
 
 	// Extract data values to prepare for interpolation
 	std::vector<std::vector<double>> gridValueMatrix;
@@ -180,7 +180,7 @@ double DataGridTxt::interpCubic(const GeodeticCoord& location) const {
 		}
 		gridValueMatrix.push_back(currentRow);
 	}
-	const double INTERP_RESULT = MathHelpers::calculateBicubicInterpolation(gridValueMatrix, LAT_ROW_NEIGHBOR_PAIR.weightFactor, LON_COL_NEIGHBOR_PAIR.weightFactor);
+	const double INTERP_RESULT = ItuModels::MathHelpers::calculateBicubicInterpolation(gridValueMatrix, LAT_ROW_NEIGHBOR_PAIR.weightFactor, LON_COL_NEIGHBOR_PAIR.weightFactor);
 
 	return INTERP_RESULT;
 }
