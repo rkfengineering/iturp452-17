@@ -49,21 +49,10 @@ public:
     inline double fetchRxElevation_mrad() const{ return m_HorizonVals.first.second;}
 private:
     //common direct inputs
-    const double& m_freq_GHz;       //Frequency (GHz)
-    const double& m_p_percent;      //Percentage of time not exceeded (%), 0<p<=50
+    CommonInputs m_commonInputs; //common inputs and height-gain model path related values
     const double& m_deltaN;                    //Average radio-refractive index lapse-rate through the lowest 1km of the atmosphere (N-Units/km) 
-
-    //height gain model variables
-    PathProfile::Path m_mod_path;   //distances (km), heights (asl)(m), and zone types of the profile points in the height gain model
-    double m_height_tx_asl_m;       //Tx Antenna center height above ground level (m)
-    double m_height_rx_asl_m;       //Rx Antenna center height above ground level (m)
-    double m_d_tot_km;              //Great Circle Distance between Tx and Rx antennas along modified path (km)
     ITUR_P452::TxRxPair m_clutterLoss_dB;  //loss associated with clutter shielding at tx and rx
-
-    //path parameters
     ITUR_P452::HorizonAnglesAndDistances m_HorizonVals;//Tx and Rx Horizon Elevation Angles (mrad) and Horizon Distances (km)
-    double m_b0_percent;                   //Time percentage that the refractivity gradient exceeds 100 N-Units/km
-    double m_fracOverSea;                  //Fraction of the path over sea
     double m_effEarthRadius_med_km;        //Median effective Earth's radius (km)
 
     /// @brief Apply clutter/height gain model and calculate path parameters

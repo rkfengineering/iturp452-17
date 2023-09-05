@@ -163,9 +163,17 @@ TEST_F(MixedProfileTests, BasicPropTests_calcPathLossWithGasAndMultipathTest){
             K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]
         );
 
-        const auto BasicPropModel = BasicProp(K_PATH.back().d_km, HTS_MASL,HRS_MASL, FREQ_GHZ_LIST[freqInd],
-                TEMP_K, DRY_PRESSURE_HPA, SEA_FRAC,P_LIST[freqInd],B0_PERCENT,HorizonDistances);
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_GHZ_LIST[freqInd];
+        commonInputs.p_percent = P_LIST[freqInd];
+        commonInputs.height_tx_asl_m=HTS_MASL;
+        commonInputs.height_rx_asl_m=HRS_MASL;
+        commonInputs.path=K_PATH;
+        commonInputs.fracOverSea=SEA_FRAC;
+        commonInputs.timePercentBeta0=B0_PERCENT;
+        commonInputs.d_tot_km=K_PATH.back().d_km;
 
+        const auto BasicPropModel = ITUR_P452::BasicProp(commonInputs,TEMP_K, DRY_PRESSURE_HPA,HorizonDistances);
         double VAL_LBFSG,VAL_LB0P,VAL_LB0B;
 	    BasicPropModel.calcTransmissionlosses_dB(VAL_LBFSG,VAL_LB0P,VAL_LB0B);
 
@@ -196,16 +204,20 @@ TEST_F(MixedProfileTests,DiffractionLossTests_calcSphericalEarthDiffractionLossT
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
         
-        const auto DiffractionModel = DiffractionLoss(
-            K_PATH, 
-            HTS_MASL,
-            HRS_MASL,
-            FREQ_GHZ_LIST[freqInd],
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_GHZ_LIST[freqInd];
+        commonInputs.p_percent = P_LIST[freqInd];
+        commonInputs.height_tx_asl_m=HTS_MASL;
+        commonInputs.height_rx_asl_m=HRS_MASL;
+        commonInputs.path=K_PATH;
+        commonInputs.fracOverSea=SEA_FRAC;
+        commonInputs.timePercentBeta0=B0_PERCENT;
+        commonInputs.d_tot_km=K_PATH.back().d_km;
+
+        const auto DiffractionModel = ITUR_P452::DiffractionLoss(
+            commonInputs,
             DN,
-            POL,
-            P_LIST[freqInd],
-            B0_PERCENT,
-            SEA_FRAC
+            POL
         );
 
         const double LDSPH = DiffractionModel.calcSphericalEarthDiffractionLoss_dB(EFF_RADIUS_MED_KM);
@@ -240,16 +252,20 @@ TEST_F(MixedProfileTests,DiffractionLossTests_calcDiffractionLossTest){
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
 
-        const auto DiffractionModel = DiffractionLoss(
-            K_PATH, 
-            HTS_MASL,
-            HRS_MASL,
-            FREQ_GHZ_LIST[freqInd],
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_GHZ_LIST[freqInd];
+        commonInputs.p_percent = P_LIST[freqInd];
+        commonInputs.height_tx_asl_m=HTS_MASL;
+        commonInputs.height_rx_asl_m=HRS_MASL;
+        commonInputs.path=K_PATH;
+        commonInputs.fracOverSea=SEA_FRAC;
+        commonInputs.timePercentBeta0=B0_PERCENT;
+        commonInputs.d_tot_km=K_PATH.back().d_km;
+
+        const auto DiffractionModel = ITUR_P452::DiffractionLoss(
+            commonInputs,
             DN,
-            POL,
-            P_LIST[freqInd],
-            B0_PERCENT,
-            SEA_FRAC
+            POL
         );
 
         double diffractionLoss_median_dB, diffractionLoss_p_percent_dB;
@@ -286,19 +302,25 @@ TEST_F(MixedProfileTests, TroposcatterLossTests_calcTroposcatterLossTest){
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
         //input effective antanna heights relative to ground, frequency in GHz        
-        const double LOSS_VAL = TropoScatter::calcTroposcatterLoss_dB(
-            D_TOT_KM, 
-            FREQ_GHZ_LIST[freqInd],
-            HTS_MASL,
-            HRS_MASL,
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_GHZ_LIST[freqInd];
+        commonInputs.p_percent = P_LIST[freqInd];
+        commonInputs.height_tx_asl_m=HTS_MASL;
+        commonInputs.height_rx_asl_m=HRS_MASL;
+        commonInputs.path=K_PATH;//not used
+        commonInputs.fracOverSea=0;//not used
+        commonInputs.timePercentBeta0=3;//not used
+        commonInputs.d_tot_km=D_TOT_KM;
+
+        const double LOSS_VAL = ITUR_P452::TropoScatter::calcTroposcatterLoss_dB(
+            commonInputs,
             HorizonAngles,
             EFF_RADIUS_MED_KM,
             N0,
             TX_GAIN,
             RX_GAIN,
             TEMP_K,
-            DRY_PRESSURE_HPA,
-            P_LIST[freqInd]
+            DRY_PRESSURE_HPA
         );
         EXPECT_NEAR(EXPECTED_LBS[freqInd],LOSS_VAL,TOLERANCE);
     }
@@ -319,21 +341,27 @@ TEST_F(MixedProfileTests, AnomalousProp_calcSmoothEarthTxRxHeights_DuctingModel_
 
     const auto HORIZON_VALS = 
         Helpers::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ);
+
+    ITUR_P452::CommonInputs commonInputs;
+    commonInputs.freq_GHz=FREQ_GHZ;
+    commonInputs.p_percent = P_PERCENT;
+    commonInputs.height_tx_asl_m=HTS_MASL;
+    commonInputs.height_rx_asl_m=HRS_MASL;
+    commonInputs.path=K_PATH;
+    commonInputs.fracOverSea=SEA_FRAC;
+    commonInputs.timePercentBeta0=B0_PERCENT;
+    commonInputs.d_tot_km=K_PATH.back().d_km;
+
     const auto AnomalousModel = ITUR_P452::AnomalousProp(
-        K_PATH,
-        FREQ_GHZ,
-        HTS_MASL,
-        HRS_MASL,
+        commonInputs,
         TEMP_K,
         DRY_PRESSURE_HPA,
         DIST_COAST_TX,
         DIST_COAST_RX,
-        P_PERCENT,
-        B0_PERCENT,
         EFF_RADIUS_MED_KM,
-        HORIZON_VALS,
-        SEA_FRAC
+        HORIZON_VALS
     );
+
     const auto [EFF_TX_HEIGHT_M,EFF_RX_HEIGHT_M] = AnomalousModel.calcSmoothEarthTxRxHeights_DuctingModel_amsl_m();
     
     EXPECT_NEAR(EXPECTED_TX_HEIGHT_M,EFF_TX_HEIGHT_M,TOLERANCE_STRICT);
@@ -354,21 +382,27 @@ TEST_F(MixedProfileTests, AnomalousProp_calcTerrainRoughnessTest){
 
     const auto HORIZON_VALS = 
         Helpers::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ);
+
+    ITUR_P452::CommonInputs commonInputs;
+    commonInputs.freq_GHz=FREQ_GHZ;
+    commonInputs.p_percent = P_PERCENT;
+    commonInputs.height_tx_asl_m=HTS_MASL;
+    commonInputs.height_rx_asl_m=HRS_MASL;
+    commonInputs.path=K_PATH;
+    commonInputs.fracOverSea=SEA_FRAC;
+    commonInputs.timePercentBeta0=B0_PERCENT;
+    commonInputs.d_tot_km=K_PATH.back().d_km;
+
     const auto AnomalousModel = ITUR_P452::AnomalousProp(
-        K_PATH,
-        FREQ_GHZ,
-        HTS_MASL,
-        HRS_MASL,
+        commonInputs,
         TEMP_K,
         DRY_PRESSURE_HPA,
         DIST_COAST_TX,
         DIST_COAST_RX,
-        P_PERCENT,
-        B0_PERCENT,
         EFF_RADIUS_MED_KM,
-        HORIZON_VALS,
-        SEA_FRAC
+        HORIZON_VALS
     );
+
     const double VAL_TERRAIN_ROUGHNESS = AnomalousModel.calcTerrainRoughness_m();
     
     EXPECT_NEAR(EXPECTED_TERRAIN_ROUGHNESS,VAL_TERRAIN_ROUGHNESS,TOLERANCE_STRICT);
@@ -396,20 +430,25 @@ TEST_F(MixedProfileTests, AnomalousProp_calcAnomalousPropLossTest){
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
         const auto HORIZON_VALS = 
             Helpers::calcHorizonAnglesAndDistances(K_PATH, HTS_MASL, HRS_MASL, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]);
+        
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_GHZ_LIST[freqInd];
+        commonInputs.p_percent = P_LIST[freqInd];
+        commonInputs.height_tx_asl_m=HTS_MASL;
+        commonInputs.height_rx_asl_m=HRS_MASL;
+        commonInputs.path=K_PATH;
+        commonInputs.fracOverSea=SEA_FRAC;
+        commonInputs.timePercentBeta0=B0_PERCENT;
+        commonInputs.d_tot_km=K_PATH.back().d_km;
+
         const auto AnomalousModel = ITUR_P452::AnomalousProp(
-            K_PATH,
-            FREQ_GHZ_LIST[freqInd],
-            HTS_MASL,
-            HRS_MASL,
+            commonInputs,
             TEMP_K,
             DRY_PRESSURE_HPA,
             DIST_COAST_TX,
             DIST_COAST_RX,
-            P_LIST[freqInd],
-            B0_PERCENT,
             EFF_RADIUS_MED_KM,
-            HORIZON_VALS,
-            SEA_FRAC
+            HORIZON_VALS
         );
         const double LOSS_VAL = AnomalousModel.calcAnomalousPropLoss_dB();
         EXPECT_NEAR(EXPECTED_LBA[freqInd],LOSS_VAL,TOLERANCE);

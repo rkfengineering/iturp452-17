@@ -14,19 +14,12 @@ class BasicProp {
     FRIEND_TEST(BasicPropTests, calcFreeSpacePathLoss);
 public:
     /// @brief Load inputs for Basic Propagation Model with gaseous attenuation and multipath focusing and calculate
-    /// @param d_tot_km         //Distance between Tx and Rx antennas (km)
-    /// @param height_tx_asl_m  //Tx Antenna height (asl) (m)
-    /// @param height_rx_asl_m  //Rx Antenna height (asl) (m)
-    /// @param freq_GHz         //Frequency (GHz)
+    /// @param commonInputs     //Contains frequency, time percent, antenna heights, and path-related inputs
     /// @param temp_K           //Temperature (K)
     /// @param dryPressure_hPa  //Dry air pressure (hPa)
-    /// @param frac_over_sea    //Fraction of the path over sea
-    /// @param p_percent        //Annual percentage of time not exceeded
-    /// @param b0_percent       //Time percentage that the refractivity gradient exceeds 100 N-Units/km
     /// @param horizonDists_km  //Tx and Rx Horizon Distances (km)
-    BasicProp(const double& d_tot_km, const double& height_tx_asl_m, const double& height_rx_asl_m,
-                const double& freq_GHz, const double& temp_K, const double& dryPressure_hPa, const double& frac_over_sea,
-                const double& p_percent, const double& b0_percent, const ITUR_P452::TxRxPair& horizonDists_km);
+    BasicProp(const CommonInputs& commonInputs, const double& temp_K, const double& dryPressure_hPa, 
+                const ITUR_P452::TxRxPair& horizonDists_km);
 
     /// @brief Calculate values from the basic transmission loss model of Section 4.1
     /// @param out_freeSpaceWithGasLoss_dB              return free space transmission loss with gas attenuation
@@ -37,25 +30,11 @@ public:
 
 private:
     //direct inputs
-    const double& m_d_tot_km;        //Distance between Tx and Rx antennas (km)
-    const double& m_height_tx_asl_m; //Tx Antenna height (asl_m)
-    const double& m_height_rx_asl_m; //Rx Antenna height (asl_m)
-    const double& m_freq_GHz;        //Frequency (GHz)
+    const CommonInputs& m_commonInputs; //see ClearAirModelHelpers.h
     const double& m_temp_K;          //Temperature (K)
     const double& m_dryPressure_hPa; //Dry air pressure (hPa)
-    const double& m_p_percent;       //Annual percentage of time not exceeded
-
-    const double& m_b0_percent;      //Time percentage that the refractivity gradient exceeds 100 N-Units/km
-
     // Note: For LOS path, these distances are from the antenna to the Bullington point from the diffraction method for 50% time
     const ITUR_P452::TxRxPair& m_horizonDists_km; //Tx and Rx Horizon Distances (km)
-
-    //Consider making this a data member of the path class that gets calculated once
-    const double& m_frac_over_sea;      //Fraction of the path over sea
-
-    double m_freeSpaceWithGasLoss_dB;   //Free space transmission loss with gas attenuation
-    double m_basicTransmissionLoss_p_percent_dB;    //free space loss with gas atten and multipath focusing correction for p percent of time
-    double m_basicTransmissionLoss_b0_percent_dB;   //free space loss with gas atten and multipath focusing correction for b0 percent of time
 
     /// @brief LOS transmission loss including Gaseous attenuation
     /// @return Transmission Loss (dB)

@@ -62,16 +62,20 @@ TEST_F(DeltaBullingtonTests, calculateDiffractionModelSmoothEarthHeightsTest){
         const double HTS_AMSL = HTS_LIST[pathInd]+path.front().h_asl_m;
         const double HRS_AMSL = HRS_LIST[pathInd]+path.back().h_asl_m;
 
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_MHZ_LIST[pathInd]/1000.0;
+        commonInputs.p_percent = 0.1; //p_percent isn't tested here;
+        commonInputs.height_tx_asl_m=HTS_AMSL;
+        commonInputs.height_rx_asl_m=HRS_AMSL;
+        commonInputs.path=path;
+        commonInputs.fracOverSea=path.calcFracOverSea();
+        commonInputs.timePercentBeta0=3.0; //b0_percent isn't tested here;
+        commonInputs.d_tot_km=path.back().d_km;
+
         const auto DiffractionModel = DiffractionLoss(
-            path, 
-            HTS_AMSL,
-            HRS_AMSL,
-            FREQ_MHZ_LIST[pathInd]/1000.0,
+            commonInputs,
             53,//delta N isn't tested here
-            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
-            0.1, //p_percent isn't tested here
-            3.0, //b0_percent isn't tested here
-            path.calcFracOverSea()
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized
         );
 
         //Calculate ground level height relative to sea level at tx,rx in smooth earth model 
@@ -119,16 +123,20 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcBullingtonLossTest){
         //input heights need to be in m asl, frequency in GHz
         const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
 
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_MHZ_LIST[pathInd]/1000.0;
+        commonInputs.p_percent = 0.1; //p_percent isn't tested here;
+        commonInputs.height_tx_asl_m=HTS_LIST[pathInd] + path.front().h_asl_m;
+        commonInputs.height_rx_asl_m=HRS_LIST[pathInd] + path.back().h_asl_m;
+        commonInputs.path=path;
+        commonInputs.fracOverSea=path.calcFracOverSea();
+        commonInputs.timePercentBeta0=3.0; //b0_percent isn't tested here;
+        commonInputs.d_tot_km=path.back().d_km;
+
         const auto DiffractionModel = DiffractionLoss(
-            path, 
-            HTS_LIST[pathInd] + path.front().h_asl_m,
-            HRS_LIST[pathInd] + path.back().h_asl_m,
-            FREQ_MHZ_LIST[pathInd]/1000.0,
+            commonInputs,
             53,//delta N isn't tested here
-            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
-            0.1, //p_percent isn't tested here
-            3.0, //b0_percent isn't tested here
-            path.calcFracOverSea()
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized
         );
 
         const double LBA = DiffractionModel.calcBullingtonLoss_dB(
@@ -187,16 +195,20 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSphericalEarthLossFirstTermTest
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
 
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_MHZ_LIST[pathInd]/1000.0;
+        commonInputs.p_percent = 0.1; //p_percent isn't tested here;
+        commonInputs.height_tx_asl_m=HTS_LIST[pathInd] + path.front().h_asl_m;
+        commonInputs.height_rx_asl_m=HRS_LIST[pathInd] + path.back().h_asl_m;
+        commonInputs.path=path;
+        commonInputs.fracOverSea=path.calcFracOverSea();
+        commonInputs.timePercentBeta0=3.0; //b0_percent isn't tested here;
+        commonInputs.d_tot_km=path.back().d_km;
+
         const auto DiffractionModel = DiffractionLoss(
-            path, 
-            HTS_LIST[pathInd] + path.front().h_asl_m,
-            HRS_LIST[pathInd] + path.back().h_asl_m,
-            FREQ_MHZ_LIST[pathInd]/1000.0,
+            commonInputs,
             53,//delta N isn't tested here
-            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
-            0.1, //p_percent isn't tested here
-            3.0, //b0_percent isn't tested here
-            path.calcFracOverSea()
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized
         );
         
         //First term of spherical diffraction loss
@@ -245,16 +257,20 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSphericalEarthLossTest){
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
 
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_MHZ_LIST[pathInd]/1000.0;
+        commonInputs.p_percent = 0.1; //p_percent isn't tested here;
+        commonInputs.height_tx_asl_m=HTS_LIST[pathInd] + path.front().h_asl_m;
+        commonInputs.height_rx_asl_m=HRS_LIST[pathInd] + path.back().h_asl_m;
+        commonInputs.path=path;
+        commonInputs.fracOverSea=path.calcFracOverSea();
+        commonInputs.timePercentBeta0=3.0; //b0_percent isn't tested here;
+        commonInputs.d_tot_km=path.back().d_km;
+
         const auto DiffractionModel = DiffractionLoss(
-            path, 
-            HTS_LIST[pathInd] + path.front().h_asl_m,
-            HRS_LIST[pathInd] + path.back().h_asl_m,
-            FREQ_MHZ_LIST[pathInd]/1000.0,
+            commonInputs,
             53,//delta N isn't tested here
-            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
-            0.1, //p_percent isn't tested here
-            3.0, //b0_percent isn't tested here
-            path.calcFracOverSea()
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized
         );
 
         const double LSPH = DiffractionModel.calcSphericalEarthDiffractionLoss_dB(m_effEarthRadius_km);
@@ -299,16 +315,20 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcDeltaBullingtonLossTest){
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
         
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_MHZ_LIST[pathInd]/1000.0;
+        commonInputs.p_percent = 0.1; //p_percent isn't tested here;
+        commonInputs.height_tx_asl_m=HTS_LIST[pathInd] + path.front().h_asl_m;
+        commonInputs.height_rx_asl_m=HRS_LIST[pathInd] + path.back().h_asl_m;
+        commonInputs.path=path;
+        commonInputs.fracOverSea=path.calcFracOverSea();
+        commonInputs.timePercentBeta0=3.0; //b0_percent isn't tested here;
+        commonInputs.d_tot_km=path.back().d_km;
+
         const auto DiffractionModel = DiffractionLoss(
-            path, 
-            HTS_LIST[pathInd] + path.front().h_asl_m,
-            HRS_LIST[pathInd] + path.back().h_asl_m,
-            FREQ_MHZ_LIST[pathInd]/1000.0,
+            commonInputs,
             53,//delta N isn't tested here
-            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
-            0.1, //p_percent isn't tested here
-            3.0, //b0_percent isn't tested here
-            path.calcFracOverSea()
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized
         );
 
         const double LOSS_VAL = DiffractionModel.calcDeltaBullingtonLoss_dB(m_effEarthRadius_km);
@@ -354,17 +374,21 @@ TEST_F(DeltaBullingtonTests, DiffractionLoss_calcSmoothEarthBullingtonLossTest){
     for (uint32_t pathInd = 0; pathInd < PATH_LIST.size(); pathInd++) {
         //input effective antanna heights relative to ground, frequency in GHz
         const PathProfile::Path path = m_profile_list[PATH_LIST[pathInd]-1];
-        const double FREQ_GHZ = FREQ_MHZ_LIST[pathInd]/1000.0; //ERROR things break if we use this expression directly. probably cuz everything is done by reference
+                
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_MHZ_LIST[pathInd]/1000.0;
+        commonInputs.p_percent = 0.1; //p_percent isn't tested here;
+        commonInputs.height_tx_asl_m=HTS_LIST[pathInd] + path.front().h_asl_m;
+        commonInputs.height_rx_asl_m=HRS_LIST[pathInd] + path.back().h_asl_m;
+        commonInputs.path=path;
+        commonInputs.fracOverSea=path.calcFracOverSea();
+        commonInputs.timePercentBeta0=3.0; //b0_percent isn't tested here;
+        commonInputs.d_tot_km=path.back().d_km;
+
         const auto DiffractionModel = DiffractionLoss(
-            path, 
-            HTS_LIST[pathInd] + path.front().h_asl_m,
-            HRS_LIST[pathInd] + path.back().h_asl_m,
-            FREQ_GHZ,
+            commonInputs,
             53,//delta N isn't tested here
-            ItuModels::Enumerations::PolarizationType::HorizontalPolarized,
-            0.1, //p_percent isn't tested here
-            3.0, //b0_percent isn't tested here
-            path.calcFracOverSea()
+            ItuModels::Enumerations::PolarizationType::HorizontalPolarized
         );
 
         //modified heights and zero profile

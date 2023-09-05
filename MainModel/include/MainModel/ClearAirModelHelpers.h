@@ -9,6 +9,20 @@ namespace ITUR_P452{
 
     //Pair for returning horizon angles(mrad) (first) and horizon distances(km) (second)
     using HorizonAnglesAndDistances = std::pair<TxRxPair,TxRxPair>;
+
+    struct CommonInputs{
+        CommonInputs();
+        //basic inputs
+        double freq_GHz;
+        double p_percent;
+        double height_tx_asl_m;
+        double height_rx_asl_m;
+        //path inputs
+        PathProfile::Path path;
+        double d_tot_km;
+        double fracOverSea;
+        double timePercentBeta0;
+    };
 }
 
 namespace ITUR_P452::Helpers{

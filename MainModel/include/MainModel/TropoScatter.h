@@ -13,10 +13,7 @@
 namespace ITUR_P452::TropoScatter {
 
     /// @brief Basic transmission loss due to troposcatter not exceeded for p percentage of time
-    /// @param d_tot_km                     Distance between Tx and Rx antennas (km)
-    /// @param freq_GHz                     Frequency (GHz)
-    /// @param height_tx_asl_m              Tx Antenna height (asl_m)
-    /// @param height_rx_asl_m              Rx Antenna height (asl_m)
+    /// @param commonInputs     //Contains frequency, time percent, antenna heights, and path-related inputs
     /// @param elevationAngles_mrad         Horizon Elevation Angles for transhorizon path, 
     /// @param eff_radius_med_km            Median effective Earth's radius (km)
     /// @param path_angular_distance_mrad   Path Angular Distance (mrad)
@@ -25,12 +22,10 @@ namespace ITUR_P452::TropoScatter {
     /// @param rxHorizonGain_dBi            Rx Antenna directional gain towards the horizon along the path (dB)
     /// @param temp_K                       Temperature (K)
     /// @param dryPressure_hPa              Dry air pressure (hPa)
-    /// @param p_percent                    Percentage of time not exceeded (%), 0.001<=p<=50
     /// @return Loss due to troposcatter (dB)
-    double calcTroposcatterLoss_dB(const double& d_tot_km, const double& freq_GHz, const double& height_tx_asl_m,
-            const double& height_rx_asl_m, const ITUR_P452::TxRxPair&elevationAngles_mrad, const double& eff_radius_med_km, 
-            const double& seaLevelSurfaceRefractivity, const double& txHorizonGain_dBi, const double& rxHorizonGain_dBi, 
-            const double& temp_K, const double& dryPressure_hPa, const double& p_percent);
+    double calcTroposcatterLoss_dB(const CommonInputs& commonInputs, const ITUR_P452::TxRxPair&elevationAngles_mrad, 
+            const double& eff_radius_med_km, const double& seaLevelSurfaceRefractivity, const double& txHorizonGain_dBi, 
+            const double& rxHorizonGain_dBi, const double& temp_K, const double& dryPressure_hPa);
             
 }//end namespace TropoScatter
  //end namespace ITUR_P452

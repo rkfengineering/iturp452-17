@@ -21,18 +21,10 @@ FRIEND_TEST(MixedProfileTests,DiffractionLossTests_calcSphericalEarthDiffraction
 
 public:
     /// @brief Diffraction Loss model from Section 4.5.4
-    /// @param path             Contains distance (km) and height (asl)(m) profile points
-    /// @param height_tx_asl_m  Tx Antenna height (m)
-    /// @param height_rx_asl_m  Rx Antenna height (m)
-    /// @param freq_GHz         Frequency (GHz)
+    /// @param commonInputs     Contains frequency, time percent, antenna heights, and path-related inputs
     /// @param deltaN           Average radio-refractive index lapse-rate through the lowest 1km of the atmosphere (positive value) 
     /// @param pol              Polarization type (horizontal or vertical)
-    /// @param p_percent        Percentage of time not exceeded (%), 0<p<=50
-    /// @param b0_percent       Time percentage that the refractivity gradient (DELTA-N) exceeds 100 N-units/km in the first 100 m of the lower atmosphere (%)
-    /// @param frac_over_sea    Fraction of the path over sea
-    DiffractionLoss(const PathProfile::Path& path, const double& height_tx_asl_m, const double& height_rx_asl_m,
-            const double& freq_GHz, const double& deltaN, const ItuModels::Enumerations::PolarizationType& pol, 
-            const double& p_percent, const double&b0_percent, const double& frac_over_sea);
+    DiffractionLoss(const CommonInputs& commonInputs, const double& deltaN, const ItuModels::Enumerations::PolarizationType& pol);
 
     /// @brief Diffraction Loss model from Section 4.5.4
     /// @param out_diff_loss_median_dB Returns diffraction loss not exceeded for 50 percentof time
@@ -41,20 +33,11 @@ public:
 
 private:
     //direct inputs
-    const PathProfile::Path& m_path; //Contains distance (km) and height (asl)(m) profile points
-    const double& m_height_tx_asl_m; //Tx Antenna height (m)
-    const double& m_height_rx_asl_m; //Rx Antenna height (m)
-    const double& m_freq_GHz;        //Frequency (GHz)
+    const CommonInputs& m_commonInputs; //see ClearAirModelHelpers.h
     const double& m_deltaN;          //Average radio-refractive index lapse-rate through the lowest 1km of the atmosphere (positive value) 
     const ItuModels::Enumerations::PolarizationType& m_pol; //Polarization type (horizontal or vertical)
-    const double& m_p_percent;       // Percentage of time not exceeded (%), 0<p<=50
-
-    //intermediate inputs
-    const double& m_b0_percent;      //Time percentage that the refractivity gradient (DELTA-N) exceeds 100 N-units/km in the first 100 m of the lower atmosphere (%)
-    const double& m_frac_over_sea;   //Fraction of the path over sea
 
     //Calculated intermediate values
-    double m_d_tot_km;                //Total great circle path distance from tx to rx (km)
     double m_eff_height_itx_m;        //Effective height of interfering antenna (m)
     double m_eff_height_irx_m;        //Effective height of interfered-with antenna (m)
 

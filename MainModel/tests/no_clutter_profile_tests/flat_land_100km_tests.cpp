@@ -110,8 +110,17 @@ TEST_F(FlatLand100kmProfileTests, BasicPropTests_calcPathLossWithGasAndMultipath
             mod_path, height_tx_asl_m, height_rx_asl_m, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]
         );
 
-        const auto BasicPropModel = ITUR_P452::BasicProp(mod_path.back().d_km, height_tx_asl_m, height_rx_asl_m, 
-                FREQ_GHZ_LIST[freqInd],TEMP_K, DRY_PRESSURE_HPA, SEA_FRAC,P_LIST[freqInd],B0_PERCENT,HorizonDistances);
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_GHZ_LIST[freqInd];
+        commonInputs.p_percent = P_LIST[freqInd];
+        commonInputs.height_tx_asl_m=height_tx_asl_m;
+        commonInputs.height_rx_asl_m=height_rx_asl_m;
+        commonInputs.path=mod_path;
+        commonInputs.fracOverSea=SEA_FRAC;
+        commonInputs.timePercentBeta0=B0_PERCENT;
+        commonInputs.d_tot_km=mod_path.back().d_km;
+
+        const auto BasicPropModel = ITUR_P452::BasicProp(commonInputs,TEMP_K, DRY_PRESSURE_HPA,HorizonDistances);
 
         double VAL_LBFSG,VAL_LB0P,VAL_LB0B;
 	    BasicPropModel.calcTransmissionlosses_dB(VAL_LBFSG,VAL_LB0P,VAL_LB0B);
@@ -157,16 +166,20 @@ TEST_F(FlatLand100kmProfileTests, DiffractionLossTests_calcDiffractionLossTest){
         const double height_tx_asl_m = hg_height_tx_m + mod_path.front().h_asl_m;
         const double height_rx_asl_m = hg_height_rx_m + mod_path.back().h_asl_m;
 
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_GHZ_LIST[freqInd];
+        commonInputs.p_percent = P_LIST[freqInd];
+        commonInputs.height_tx_asl_m=height_tx_asl_m;
+        commonInputs.height_rx_asl_m=height_rx_asl_m;
+        commonInputs.path=mod_path;
+        commonInputs.fracOverSea=SEA_FRAC;
+        commonInputs.timePercentBeta0=B0_PERCENT;
+        commonInputs.d_tot_km=mod_path.back().d_km;
+
         const auto DiffractionModel = ITUR_P452::DiffractionLoss(
-            mod_path, 
-            height_tx_asl_m,
-            height_rx_asl_m,
-            FREQ_GHZ_LIST[freqInd],
+            commonInputs,
             DN,
-            POL,
-            P_LIST[freqInd],
-            B0_PERCENT,
-            SEA_FRAC
+            POL
         );
 
         double diffractionLoss_median_dB, diffractionLoss_p_percent_dB;
@@ -211,19 +224,25 @@ TEST_F(FlatLand100kmProfileTests, TroposcatterLossTests_calcTroposcatterLossTest
 
     for (uint32_t freqInd = 0; freqInd < FREQ_GHZ_LIST.size(); freqInd++) {
         //input effective antanna heights relative to ground, frequency in GHz        
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_GHZ_LIST[freqInd];
+        commonInputs.p_percent = P_LIST[freqInd];
+        commonInputs.height_tx_asl_m=height_tx_asl_m;
+        commonInputs.height_rx_asl_m=height_rx_asl_m;
+        commonInputs.path=mod_path;//not used
+        commonInputs.fracOverSea=0;//not used
+        commonInputs.timePercentBeta0=3;//not used
+        commonInputs.d_tot_km=D_TOT_KM;
+
         const double LOSS_VAL = ITUR_P452::TropoScatter::calcTroposcatterLoss_dB(
-            D_TOT_KM, 
-            FREQ_GHZ_LIST[freqInd],
-            height_tx_asl_m,
-            height_rx_asl_m,
+            commonInputs,
             HorizonAngles,
             EFF_RADIUS_MED_KM,
             N0,
             TX_GAIN,
             RX_GAIN,
             TEMP_K,
-            DRY_PRESSURE_HPA,
-            P_LIST[freqInd]
+            DRY_PRESSURE_HPA
         );
         EXPECT_NEAR(EXPECTED_LBS[freqInd],LOSS_VAL,TOLERANCE);
     }
@@ -291,20 +310,25 @@ TEST_F(FlatLand100kmProfileTests, AnomalousProp_calcAnomalousPropLossTest){
 
         const auto HORIZON_VALS = ITUR_P452::Helpers::calcHorizonAnglesAndDistances(
             mod_path, height_tx_asl_m, height_rx_asl_m, EFF_RADIUS_MED_KM, FREQ_GHZ_LIST[freqInd]);
+        
+        ITUR_P452::CommonInputs commonInputs;
+        commonInputs.freq_GHz=FREQ_GHZ_LIST[freqInd];
+        commonInputs.p_percent = P_LIST[freqInd];
+        commonInputs.height_tx_asl_m=height_tx_asl_m;
+        commonInputs.height_rx_asl_m=height_rx_asl_m;
+        commonInputs.path=mod_path;
+        commonInputs.fracOverSea=SEA_FRAC;
+        commonInputs.timePercentBeta0=B0_PERCENT;
+        commonInputs.d_tot_km=mod_path.back().d_km;
+
         const auto AnomalousModel = ITUR_P452::AnomalousProp(
-            mod_path,
-            FREQ_GHZ_LIST[freqInd],
-            height_tx_asl_m,
-            height_rx_asl_m,
+            commonInputs,
             TEMP_K,
             DRY_PRESSURE_HPA,
             DIST_COAST_TX,
             DIST_COAST_RX,
-            P_LIST[freqInd],
-            B0_PERCENT,
             EFF_RADIUS_MED_KM,
-            HORIZON_VALS,
-            SEA_FRAC
+            HORIZON_VALS
         );
         const double LOSS_VAL = AnomalousModel.calcAnomalousPropLoss_dB();
         EXPECT_NEAR(EXPECTED_LBA[freqInd],LOSS_VAL,TOLERANCE);

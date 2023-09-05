@@ -129,8 +129,16 @@ TEST(BasicPropTests, calcFreeSpacePathLoss){
 		ItuModels::DataStructures::PATH_LOSS_SCALE_FACTOR * INPUT_DIST_KM * INPUT_FREQ_GHz) * 2.0;
 
 	//arbitrary inputs to create the object
-	const auto BasicPropModel = BasicProp(INPUT_DIST_KM, 0,0, INPUT_FREQ_GHz, 300, 1000, 
-            0, 0.1, 3, ITUR_P452::TxRxPair{20,20});	
+	ITUR_P452::CommonInputs commonInputs;
+	commonInputs.freq_GHz=INPUT_FREQ_GHz;
+	commonInputs.p_percent = 0.1;
+	commonInputs.height_tx_asl_m=0;
+	commonInputs.height_rx_asl_m=0;
+	commonInputs.fracOverSea=0;
+	commonInputs.timePercentBeta0=3;
+	commonInputs.d_tot_km=INPUT_DIST_KM;
+
+	const auto BasicPropModel = BasicProp(commonInputs, 300, 1000, ITUR_P452::TxRxPair{20,20});	
 	
 	const double VAL_LOSS =  BasicPropModel.calcFreeSpacePathLoss_dB(INPUT_DIST_KM,INPUT_FREQ_GHz);
 

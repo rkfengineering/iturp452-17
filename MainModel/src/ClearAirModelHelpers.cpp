@@ -8,6 +8,10 @@
 #include <ostream>
 #include <sstream>
 
+//Default Constructor
+ITUR_P452::CommonInputs::CommonInputs(){
+}
+
 double ITUR_P452::Helpers::calcMedianEffectiveRadius_km(const double& delta_N){
     const double k50 = 157.0/(157.0-delta_N); //Eq 5
     return 6371.0 * k50; //Eq 6a
