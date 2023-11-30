@@ -5,10 +5,10 @@
 #include <cstdint>
 
 //constructors
-PathProfile::ProfilePoint::ProfilePoint(){
+PathProfile::ProfilePoint::ProfilePoint():d_km{0}, h_asl_m{0}, zone{ZoneType::Unlabelled}{
 }
 PathProfile::ProfilePoint::ProfilePoint(double distance_km, double height_asl_m):
-    d_km{distance_km}, h_asl_m{height_asl_m}{
+    d_km{distance_km}, h_asl_m{height_asl_m}, zone{ZoneType::Unlabelled}{
 }
 PathProfile::ProfilePoint::ProfilePoint(double distance_km, double height_asl_m, ZoneType zonetype):
     d_km{distance_km}, h_asl_m{height_asl_m}, zone{zonetype}{

@@ -18,8 +18,7 @@ protected:
 	// Can be omitted if not needed.
 	static void SetUpTestCase() {
         K_PATH = PathProfile::Path((CMAKE_CLEARAIR_SRC_DIR 
-						/ std::filesystem::path("tests/test_paths")
-						/ std::filesystem::path("test_profile_flat_land_5km.csv")).string());
+						/ std::filesystem::path("tests/test_paths/test_profile_flat_land_5km.csv")).string());
 	}
 
 	// Per-test-suite tear-down.

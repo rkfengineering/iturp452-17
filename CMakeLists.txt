@@ -13,7 +13,7 @@ set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 
 
-set(CMAKE_CXX_FLAGS "-Wall -pedantic -std=c++20 -O2 -g -D_GLIBCXX_DEBUG")
+set(CMAKE_CXX_FLAGS "-Wall -pedantic -std=c++20 -O2 -g -D_GLIBCXX_DEBUG --coverage")
 #set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g") 
 #set(CMAKE_CXX_FLAGS_MINSIZEREL, "-Os -DNDEBUG")
 #set(CMAKE_CXX_FLAGS_RELEASE, "-O4 -DNDEBUG")
